@@ -6,10 +6,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send } from 'lucide-react';
+import { Send, Loader2, Volume2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
+import { generateSpeech } from '@/ai/flows/text-to-speech';
 
 type User = typeof CHAT_USERS[0];
 type Message = typeof CHAT_MESSAGES[0];
@@ -20,6 +21,9 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>(CHAT_MESSAGES);
   const [newMessage, setNewMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState<User>(CHAT_USERS[1]);
+  const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
+  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -29,6 +33,41 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+  
+  const handlePlayAudio = async (message: Message) => {
+    if (playingMessageId === message.id) {
+      audioRef.current?.pause();
+      setPlayingMessageId(null);
+      return;
+    }
+    
+    setLoadingAudioId(message.id);
+    try {
+      const response = await generateSpeech(message.message);
+      if (response.media && audioRef.current) {
+        audioRef.current.src = response.media;
+        audioRef.current.play();
+        setPlayingMessageId(message.id);
+      }
+    } catch (error) {
+      console.error("Error generating speech:", error);
+    } finally {
+      setLoadingAudioId(null);
+    }
+  };
+  
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    const handleAudioEnd = () => setPlayingMessageId(null);
+    audio.addEventListener('ended', handleAudioEnd);
+
+    return () => {
+      audio.removeEventListener('ended', handleAudioEnd);
+    }
+  }, []);
+
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +103,7 @@ export default function ChatPage() {
 
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-4">
+      <audio ref={audioRef} />
       <Card className="w-1/3 hidden md:flex flex-col">
         <CardHeader>
           <CardTitle>Contacts</CardTitle>
@@ -126,18 +166,38 @@ export default function ChatPage() {
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
                     </Avatar>
                   )}
-                  <div
-                    className={cn(
-                      'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2',
-                      isCurrentUser
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
+                   <div className="flex items-center gap-2">
+                    {!isCurrentUser && (
+                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handlePlayAudio(msg)}>
+                        {loadingAudioId === msg.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Volume2 className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
+                        )}
+                      </Button>
                     )}
-                  >
-                    <p className="text-sm">{msg.message}</p>
-                     <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
-                      {formatDistanceToNow(msg.timestamp, { addSuffix: true })}
-                    </p>
+                    <div
+                      className={cn(
+                        'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2',
+                        isCurrentUser
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      )}
+                    >
+                      <p className="text-sm">{msg.message}</p>
+                       <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
+                        {formatDistanceToNow(msg.timestamp, { addSuffix: true })}
+                      </p>
+                    </div>
+                     {isCurrentUser && (
+                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handlePlayAudio(msg)}>
+                        {loadingAudioId === msg.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Volume2 className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
+                        )}
+                      </Button>
+                    )}
                   </div>
                    {isCurrentUser && (
                     <Avatar className="h-8 w-8">
