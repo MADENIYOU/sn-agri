@@ -11,9 +11,8 @@ import { cn } from '@/lib/utils';
 import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
 import { generateSpeech } from '@/ai/flows/text-to-speech';
+import type { Message, User } from '@/lib/types';
 
-type User = typeof CHAT_USERS[0];
-type Message = typeof CHAT_MESSAGES[0];
 
 const currentUser = CHAT_USERS[0]; // Simulate the current logged-in user
 
