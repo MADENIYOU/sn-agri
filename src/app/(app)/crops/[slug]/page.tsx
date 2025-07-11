@@ -33,7 +33,7 @@ export default function CropDetailPage({ params }: { params: { slug: string } })
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="text-primary" /> Best Practices
+              <CheckCircle2 className="text-primary" /> Meilleures Pratiques
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -43,7 +43,7 @@ export default function CropDetailPage({ params }: { params: { slug: string } })
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Wind className="text-primary" /> Production Conditions
+              <Wind className="text-primary" /> Conditions de Production
             </CardTitle>
           </CardHeader>
           <CardContent>

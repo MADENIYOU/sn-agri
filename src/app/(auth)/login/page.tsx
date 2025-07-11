@@ -8,9 +8,9 @@ export default function LoginPage() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Log in to your account</CardTitle>
+        <CardTitle className="text-2xl">Connectez-vous à votre compte</CardTitle>
         <CardDescription>
-          Enter your email below to access your dashboard.
+          Entrez votre email ci-dessous pour accéder à votre tableau de bord.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -20,22 +20,22 @@ export default function LoginPage() {
         </div>
         <div className="grid gap-2">
           <div className="flex items-center">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Mot de passe</Label>
             <Link href="#" className="ml-auto inline-block text-sm underline">
-              Forgot your password?
+              Mot de passe oublié ?
             </Link>
           </div>
           <Input id="password" type="password" />
         </div>
         <Button type="submit" className="w-full">
-          Log In
+          Se connecter
         </Button>
       </CardContent>
       <CardFooter className="flex flex-col gap-2 text-sm">
         <p>
-          Don&apos;t have an account?{" "}
+          Vous n'avez pas de compte ?{" "}
           <Link href="/signup" className="underline">
-            Sign up
+            S'inscrire
           </Link>
         </p>
       </CardFooter>

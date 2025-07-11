@@ -8,9 +8,9 @@ export default function SearchPage() {
         <div className="p-3 bg-primary/10 rounded-full mb-4">
           <BrainCircuit className="h-10 w-10 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold font-headline">AI Crop Recommendation</h1>
+        <h1 className="text-3xl font-bold font-headline">Recommandation de Cultures par l'IA</h1>
         <p className="text-muted-foreground mt-2">
-          Fill in your farm&apos;s details to get personalized crop recommendations from our AI advisor.
+          Remplissez les détails de votre exploitation pour obtenir des recommandations de cultures personnalisées de notre conseiller IA.
         </p>
       </div>
       <SearchForm />

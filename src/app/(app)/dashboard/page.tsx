@@ -10,23 +10,23 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Welcome back, Moussa!</h1>
-        <p className="text-muted-foreground">Here&apos;s a summary of your farm and community activity.</p>
+        <h1 className="text-3xl font-bold font-headline">Bon retour, Moussa !</h1>
+        <p className="text-muted-foreground">Voici un résumé de votre ferme et de l'activité de la communauté.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Weather Forecast" value="28°C, Sunny" icon={<Cloud />} description="Next 24 hours in Dakar" />
-        <StatCard title="Active Crops" value="3 Varieties" icon={<Sprout />} description="Millet, Sorghum, Groundnut" />
-        <StatCard title="Market Price" value="+2.5% Millet" icon={<BarChart />} description="vs. last week" />
-        <StatCard title="New Connections" value="4 Farmers" icon={<Users />} description="in the community feed" />
+        <StatCard title="Prévisions Météo" value="28°C, Ensoleillé" icon={<Cloud />} description="Prochaines 24h à Dakar" />
+        <StatCard title="Cultures Actives" value="3 Variétés" icon={<Sprout />} description="Mil, Sorgho, Arachide" />
+        <StatCard title="Prix du Marché" value="+2.5% Mil" icon={<BarChart />} description="vs. la semaine dernière" />
+        <StatCard title="Nouvelles Connexions" value="4 Agriculteurs" icon={<Users />} description="dans le fil communautaire" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         <ProductionChart />
         <Card>
           <CardHeader>
-            <CardTitle>Recent Community Activity</CardTitle>
-            <CardDescription>Latest posts from the community feed.</CardDescription>
+            <CardTitle>Activité Récente de la Communauté</CardTitle>
+            <CardDescription>Derniers messages du fil communautaire.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {FEED_POSTS.slice(0, 3).map((post) => (
@@ -42,7 +42,7 @@ export default function DashboardPage() {
               </div>
             ))}
              <Button variant="outline" className="w-full" asChild>
-                <Link href="/feed">View All Posts</Link>
+                <Link href="/feed">Voir tous les messages</Link>
             </Button>
           </CardContent>
         </Card>

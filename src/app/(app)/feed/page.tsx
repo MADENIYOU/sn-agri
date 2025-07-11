@@ -10,9 +10,9 @@ export default function FeedPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Community Feed</h1>
+        <h1 className="text-3xl font-bold font-headline">Fil Communautaire</h1>
         <p className="text-muted-foreground">
-          Connect, share, and learn with the Senegalese agricultural community.
+          Connectez-vous, partagez et apprenez avec la communauté agricole sénégalaise.
         </p>
       </div>
 
@@ -24,11 +24,11 @@ export default function FeedPage() {
               <AvatarFallback>MF</AvatarFallback>
             </Avatar>
             <div className="w-full space-y-2">
-              <Textarea placeholder="What's on your mind, Moussa?" />
+              <Textarea placeholder="À quoi pensez-vous, Moussa ?" />
               <div className="flex justify-end">
                 <Button>
                   <Send className="w-4 h-4 mr-2" />
-                  Post
+                  Publier
                 </Button>
               </div>
             </div>
@@ -55,7 +55,7 @@ export default function FeedPage() {
                 <div className="mt-4 rounded-lg overflow-hidden border">
                   <Image
                     src={post.image.src}
-                    alt="Post image"
+                    alt="Image de la publication"
                     width={600}
                     height={400}
                     className="w-full object-cover"
@@ -66,13 +66,13 @@ export default function FeedPage() {
             </CardContent>
             <CardFooter className="flex justify-between border-t pt-4">
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ThumbsUp className="w-4 h-4" /> <span>{post.likes} Like</span>
+                <ThumbsUp className="w-4 h-4" /> <span>{post.likes} J'aime</span>
               </Button>
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> <span>{post.comments} Comment</span>
+                <MessageSquare className="w-4 h-4" /> <span>{post.comments} Commentaire</span>
               </Button>
               <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <Share2 className="w-4 h-4" /> <span>Share</span>
+                <Share2 className="w-4 h-4" /> <span>Partager</span>
               </Button>
             </CardFooter>
           </Card>

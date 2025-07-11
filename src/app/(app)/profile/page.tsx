@@ -9,21 +9,21 @@ export default function ProfilePage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
        <div>
-        <h1 className="text-3xl font-bold font-headline">Your Profile</h1>
+        <h1 className="text-3xl font-bold font-headline">Votre Profil</h1>
         <p className="text-muted-foreground">
-          View and manage your account information.
+          Consultez et gérez les informations de votre compte.
         </p>
       </div>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-                <CardTitle>Personal Information</CardTitle>
-                <CardDescription>Update your photo and personal details here.</CardDescription>
+                <CardTitle>Informations Personnelles</CardTitle>
+                <CardDescription>Mettez à jour votre photo et vos informations personnelles ici.</CardDescription>
             </div>
             <Button variant="outline" size="icon">
                 <Pencil className="h-4 w-4" />
-                <span className="sr-only">Edit Profile</span>
+                <span className="sr-only">Modifier le profil</span>
             </Button>
           </div>
         </CardHeader>
@@ -33,12 +33,12 @@ export default function ProfilePage() {
                     <AvatarImage src="/avatars/01.png" />
                     <AvatarFallback>MF</AvatarFallback>
                 </Avatar>
-                <Button variant="outline">Change Photo</Button>
+                <Button variant="outline">Changer de photo</Button>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
+                    <Label htmlFor="name">Nom complet</Label>
                     <Input id="name" defaultValue="Moussa Faye" />
                 </div>
                 <div className="space-y-2">
@@ -46,16 +46,16 @@ export default function ProfilePage() {
                     <Input id="email" type="email" defaultValue="moussa.faye@email.com" />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Input id="role" defaultValue="Farmer" disabled />
+                    <Label htmlFor="role">Rôle</Label>
+                    <Input id="role" defaultValue="Agriculteur" disabled />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="region">Region</Label>
+                    <Label htmlFor="region">Région</Label>
                     <Input id="region" defaultValue="Dakar" />
                 </div>
             </div>
             <div className="flex justify-end">
-                <Button>Save Changes</Button>
+                <Button>Enregistrer les modifications</Button>
             </div>
         </CardContent>
       </Card>

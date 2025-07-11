@@ -13,10 +13,10 @@ type Farmer = {
 };
 
 const farmers: Farmer[] = [
-  { id: 1, name: "Moussa Faye", position: { x: 20.3, y: 38.4 }, crop: "Millet" }, // Dakar
-  { id: 2, name: "Awa Diallo", position: { x: 50, y: 55 }, crop: "Groundnut" },   // Kaolack
-  { id: 3, name: "Ousmane Sow", position: { x: 34, y: 22 }, crop: "Sorghum" },   // Thies
-  { id: 4, name: "Fatou Ndiaye", position: { x: 45, y: 80 }, crop: "Cassava" },  // Ziguinchor
+  { id: 1, name: "Moussa Faye", position: { x: 20.3, y: 38.4 }, crop: "Mil" }, // Dakar
+  { id: 2, name: "Awa Diallo", position: { x: 50, y: 55 }, crop: "Arachide" },   // Kaolack
+  { id: 3, name: "Ousmane Sow", position: { x: 34, y: 22 }, crop: "Sorgho" },   // Thies
+  { id: 4, name: "Fatou Ndiaye", position: { x: 45, y: 80 }, crop: "Manioc" },  // Ziguinchor
 ];
 
 const regions = [
@@ -71,7 +71,7 @@ export default function SenegalMap() {
                         <CardTitle>{farmer.name}</CardTitle>
                     </CardHeader>
                     <CardContent className="p-2 pt-0">
-                        <p className="text-sm"><strong>Primary Crop:</strong> {farmer.crop}</p>
+                        <p className="text-sm"><strong>Culture principale :</strong> {farmer.crop}</p>
                     </CardContent>
                 </Card>
             </PopoverContent>

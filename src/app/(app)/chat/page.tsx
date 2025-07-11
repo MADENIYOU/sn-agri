@@ -10,6 +10,7 @@ import { Send, Loader2, Mic, StopCircle, Trash2, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import type { Message, User } from '@/lib/types';
 
 
@@ -57,7 +58,7 @@ export default function ChatPage() {
       mediaRecorderRef.current.start();
       setIsRecording(true);
     } catch (error) {
-      console.error("Error accessing microphone:", error);
+      console.error("Erreur d'accès au microphone:", error);
       // You might want to show a toast notification to the user here
     }
   };
@@ -117,7 +118,7 @@ export default function ChatPage() {
       const reply: Message = {
         id: `msg${Date.now() + 1}`,
         userId: selectedUser.id,
-        message: 'This is an automated reply!',
+        message: 'Ceci est une réponse automatique !',
         audioUrl: null,
         timestamp: new Date(),
       };
@@ -155,7 +156,7 @@ export default function ChatPage() {
                   <div className="text-left">
                     <p className="font-semibold">{user.name}</p>
                     <p className={cn('text-xs', user.online ? 'text-green-500' : 'text-muted-foreground')}>
-                      {user.online ? 'Online' : 'Offline'}
+                      {user.online ? 'En ligne' : 'Hors ligne'}
                     </p>
                   </div>
                 </div>
@@ -173,7 +174,7 @@ export default function ChatPage() {
           <div>
             <p className="font-semibold">{selectedUser.name}</p>
             <p className={cn('text-xs', selectedUser.online ? 'text-green-500' : 'text-muted-foreground')}>
-              {selectedUser.online ? 'Online' : 'Offline'}
+              {selectedUser.online ? 'En ligne' : 'Hors ligne'}
             </p>
           </div>
         </CardHeader>
@@ -216,7 +217,7 @@ export default function ChatPage() {
                          <p className="text-sm">{msg.message}</p>
                       )}
                        <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
-                        {formatDistanceToNow(msg.timestamp, { addSuffix: true })}
+                        {formatDistanceToNow(msg.timestamp, { addSuffix: true, locale: fr })}
                       </p>
                     </div>
                   </div>
@@ -245,23 +246,23 @@ export default function ChatPage() {
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
+              placeholder="Écrivez votre message..."
               disabled={isRecording || !!audioUrl}
             />
             {isRecording ? (
                <Button type="button" size="icon" onClick={stopRecording} variant="destructive">
                 <StopCircle className="h-4 w-4" />
-                <span className="sr-only">Stop Recording</span>
+                <span className="sr-only">Arrêter l'enregistrement</span>
               </Button>
             ) : (
               <Button type="button" size="icon" onClick={startRecording}>
                 <Mic className="h-4 w-4" />
-                <span className="sr-only">Start Recording</span>
+                <span className="sr-only">Commencer l'enregistrement</span>
               </Button>
             )}
             <Button type="submit" size="icon" disabled={isRecording}>
               <Send className="h-4 w-4" />
-              <span className="sr-only">Send</span>
+              <span className="sr-only">Envoyer</span>
             </Button>
           </form>
         </div>

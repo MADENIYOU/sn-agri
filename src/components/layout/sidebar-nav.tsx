@@ -65,7 +65,7 @@ export function SidebarNav() {
             </Avatar>
             <div className="group-data-[collapsible=icon]:hidden">
               <p className="font-semibold text-sm">Moussa Faye</p>
-              <p className="text-xs text-muted-foreground">Farmer</p>
+              <p className="text-xs text-muted-foreground">Agriculteur</p>
             </div>
           </Link>
           <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" asChild>

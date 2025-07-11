@@ -8,9 +8,9 @@ export default function CropsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Crop Information Database</h1>
+        <h1 className="text-3xl font-bold font-headline">Base de Données des Cultures</h1>
         <p className="text-muted-foreground">
-          Explore potential crops, best practices, and production conditions.
+          Explorez les cultures potentielles, les meilleures pratiques et les conditions de production.
         </p>
       </div>
 
@@ -31,7 +31,7 @@ export default function CropsPage() {
               <CardTitle className="font-headline text-xl mb-2">{crop.name}</CardTitle>
               <p className="text-muted-foreground text-sm line-clamp-3 flex-grow">{crop.description}</p>
               <Button asChild className="mt-4 w-full">
-                <Link href={`/crops/${crop.slug}`}>View Details</Link>
+                <Link href={`/crops/${crop.slug}`}>Voir les détails</Link>
               </Button>
             </CardContent>
           </Card>

@@ -1,27 +1,27 @@
 import { BarChart2, BrainCircuit, Home, Map, MessageSquare, Sprout, User, Users, MessageCircle } from "lucide-react";
 
 export const NAV_LINKS = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/map", label: "Interactive Map", icon: Map },
-  { href: "/search", label: "AI Crop Search", icon: BrainCircuit },
-  { href: "/insights", label: "AI Insights", icon: BarChart2 },
-  { href: "/crops", label: "Crop Database", icon: Sprout },
-  { href: "/feed", label: "Community Feed", icon: MessageSquare },
-  { href: "/chat", label: "Chat", icon: MessageCircle },
+  { href: "/dashboard", label: "Tableau de bord", icon: Home },
+  { href: "/map", label: "Carte Interactive", icon: Map },
+  { href: "/search", label: "Recherche IA", icon: BrainCircuit },
+  { href: "/insights", label: "Aperçus IA", icon: BarChart2 },
+  { href: "/crops", label: "Base de Données", icon: Sprout },
+  { href: "/feed", label: "Fil Communautaire", icon: MessageSquare },
+  { href: "/chat", label: "Messagerie", icon: MessageCircle },
 ];
 
 export const USER_NAV_LINKS = [
-  { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Settings", icon: null },
+  { href: "/profile", label: "Profil", icon: User },
+  { href: "/settings", label: "Paramètres", icon: null },
 ];
 
 export const CROP_DATA = [
   {
     slug: "millet",
-    name: "Millet",
-    description: "A highly resilient and nutritious cereal grain, well-suited for the arid and semi-arid regions of Senegal. It's a staple food and vital for food security.",
-    bestPractices: "Plant at the beginning of the rainy season. Requires well-drained soil. Intercropping with legumes like cowpea can improve soil fertility.",
-    productionConditions: "Drought-tolerant. Thrives in sandy soils. Optimal temperature range is 26-30°C.",
+    name: "Mil",
+    description: "Une céréale très résiliente et nutritive, bien adaptée aux régions arides et semi-arides du Sénégal. C'est un aliment de base et vital pour la sécurité alimentaire.",
+    bestPractices: "Planter au début de la saison des pluies. Nécessite un sol bien drainé. L'association avec des légumineuses comme le niébé peut améliorer la fertilité du sol.",
+    productionConditions: "Tolérant à la sécheresse. Prospère dans les sols sableux. La plage de température optimale est de 26-30°C.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "millet field"
@@ -29,10 +29,10 @@ export const CROP_DATA = [
   },
   {
     slug: "sorghum",
-    name: "Sorghum",
-    description: "Another key cereal in Senegal, valued for its tolerance to drought and heat. It's used for food, feed, and traditional beverages.",
-    bestPractices: "Use certified seeds for better yields. Practice crop rotation to manage pests and diseases. Timely weeding is crucial.",
-    productionConditions: "Prefers clay-loam soils but adapts to many types. Requires less water than maize. Full sun is necessary.",
+    name: "Sorgho",
+    description: "Une autre céréale clé au Sénégal, appréciée pour sa tolérance à la sécheresse et à la chaleur. Il est utilisé pour l'alimentation, le fourrage et les boissons traditionnelles.",
+    bestPractices: "Utiliser des semences certifiées pour de meilleurs rendements. Pratiquer la rotation des cultures pour gérer les ravageurs et les maladies. Un désherbage opportun est crucial.",
+    productionConditions: "Préfère les sols argilo-limoneux mais s'adapte à de nombreux types. Nécessite moins d'eau que le maïs. Le plein soleil est nécessaire.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "sorghum crop"
@@ -40,10 +40,10 @@ export const CROP_DATA = [
   },
   {
     slug: "groundnut",
-    name: "Groundnut (Arachide)",
-    description: "A major cash crop for Senegal, important for both the local economy and for export. It is a nitrogen-fixing legume, which improves soil health.",
-    bestPractices: "Ensure good soil preparation. Apply phosphate fertilizers. Harvest at the right maturity to avoid aflatoxin contamination.",
-    productionConditions: "Requires sandy or sandy-loam soil for easy peg penetration. Needs moderate rainfall, especially during flowering and pod formation.",
+    name: "Arachide",
+    description: "Une culture de rente majeure pour le Sénégal, importante pour l'économie locale et pour l'exportation. C'est une légumineuse fixatrice d'azote, qui améliore la santé du sol.",
+    bestPractices: "Assurer une bonne préparation du sol. Appliquer des engrais phosphatés. Récolter à la bonne maturité pour éviter la contamination par l'aflatoxine.",
+    productionConditions: "Nécessite un sol sableux ou sablo-limoneux pour une pénétration facile des gynophores. A besoin de précipitations modérées, en particulier pendant la floraison et la formation des gousses.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "groundnut plant"
@@ -51,10 +51,10 @@ export const CROP_DATA = [
   },
   {
     slug: "cowpea",
-    name: "Cowpea (Niébé)",
-    description: "A versatile and nutritious legume, often called 'the poor man's meat'. It's consumed as dry grain, green pods, and leaves, and fixes nitrogen in the soil.",
-    bestPractices: "Can be grown as a sole crop or intercropped with cereals like millet and sorghum. Protect against insect pests, particularly during flowering.",
-    productionConditions: "Highly drought-tolerant and adapted to sandy soils. Thrives in warm weather.",
+    name: "Niébé",
+    description: "Une légumineuse polyvalente et nutritive, souvent appelée 'la viande du pauvre'. Elle est consommée sous forme de grain sec, de gousses vertes et de feuilles, et fixe l'azote dans le sol.",
+    bestPractices: "Peut être cultivé en culture pure ou en association avec des céréales comme le mil et le sorgho. Protéger contre les insectes nuisibles, en particulier pendant la floraison.",
+    productionConditions: "Très tolérant à la sécheresse et adapté aux sols sableux. Prospère par temps chaud.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "cowpea field"
@@ -62,10 +62,10 @@ export const CROP_DATA = [
   },
   {
     slug: "maize",
-    name: "Maize (Corn)",
-    description: "Growing in importance in Senegal, especially in the more humid southern regions. It is used for human consumption and as animal feed.",
-    bestPractices: "Requires more water and nutrients than millet or sorghum. Plant in rows for easier management. Hybrid varieties can significantly increase yield.",
-    productionConditions: "Prefers fertile, well-drained loamy soils. Sensitive to drought, particularly during the tasseling and silking stages.",
+    name: "Maïs",
+    description: "Gagne en importance au Sénégal, en particulier dans les régions plus humides du sud. Il est utilisé pour la consommation humaine et comme aliment pour animaux.",
+    bestPractices: "Nécessite plus d'eau et de nutriments que le mil ou le sorgho. Planter en lignes pour une gestion plus facile. Les variétés hybrides peuvent augmenter considérablement le rendement.",
+    productionConditions: "Préfère les sols limoneux fertiles et bien drainés. Sensible à la sécheresse, en particulier pendant les stades de la panicule et de la soie.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "maize plantation"
@@ -73,10 +73,10 @@ export const CROP_DATA = [
   },
   {
     slug: "cassava",
-    name: "Cassava (Manioc)",
-    description: "A starchy root crop that is a major source of carbohydrates. It is known for its ability to grow in poor soils and its drought tolerance.",
-    bestPractices: "Propagated from stem cuttings. Weed control is essential in the first few months. Can be harvested from 8 to 24 months after planting.",
-    productionConditions: "Adapts to a wide range of soil types but does not tolerate waterlogging. Thrives in tropical climates.",
+    name: "Manioc",
+    description: "Une culture à racine riche en amidon qui est une source majeure de glucides. Elle est connue pour sa capacité à pousser dans des sols pauvres et sa tolérance à la sécheresse.",
+    bestPractices: "Propagé à partir de boutures de tige. Le contrôle des mauvaises herbes est essentiel dans les premiers mois. Peut être récolté de 8 à 24 mois après la plantation.",
+    productionConditions: "S'adapte à une large gamme de types de sols mais ne tolère pas l'engorgement. Prospère dans les climats tropicaux.",
     image: {
       src: "https://placehold.co/800x600.png",
       aiHint: "cassava roots"
@@ -90,10 +90,10 @@ export const FEED_POSTS = [
     author: {
       name: "Moussa Faye",
       avatar: "/avatars/01.png",
-      role: "Farmer"
+      role: "Agriculteur"
     },
-    timestamp: "2 hours ago",
-    content: "Just finished planting the new batch of groundnuts for the season. The soil moisture is perfect after last week's rain. Hoping for a great harvest this year! #SenegalAgriculture #Groundnut",
+    timestamp: "il y a 2 heures",
+    content: "Je viens de finir de planter le nouveau lot d'arachides pour la saison. L'humidité du sol est parfaite après la pluie de la semaine dernière. En espérant une excellente récolte cette année ! #AgricultureSénégal #Arachide",
     image: {
       src: "https://placehold.co/600x400.png",
       aiHint: "farmer planting"
@@ -106,10 +106,10 @@ export const FEED_POSTS = [
     author: {
       name: "Awa Diallo",
       avatar: "/avatars/02.png",
-      role: "Agronomist"
+      role: "Agronome"
     },
-    timestamp: "1 day ago",
-    content: "Reminder to fellow farmers in the Kaolack region: watch out for early signs of millet head miner. Early detection and integrated pest management are key to protecting your yield. I'm available for consultations.",
+    timestamp: "il y a 1 jour",
+    content: "Rappel aux collègues agriculteurs de la région de Kaolack : surveillez les premiers signes du mineur de l'épi de mil. La détection précoce et la lutte intégrée sont essentielles pour protéger votre rendement. Je suis disponible pour des consultations.",
     image: null,
     likes: 22,
     comments: 8,
@@ -119,10 +119,10 @@ export const FEED_POSTS = [
     author: {
       name: "Bio-Agri SARL",
       avatar: "/avatars/03.png",
-      role: "Buyer"
+      role: "Acheteur"
     },
-    timestamp: "3 days ago",
-    content: "We are looking to source 5 tons of certified organic cowpeas (niébé). Please contact us with your offers and certification details. Competitive prices offered!",
+    timestamp: "il y a 3 jours",
+    content: "Nous cherchons à nous approvisionner en 5 tonnes de niébé biologique certifié. Veuillez nous contacter avec vos offres et détails de certification. Prix compétitifs offerts !",
     image: null,
     likes: 8,
     comments: 1,
@@ -146,7 +146,7 @@ export const SENEGAL_REGIONS = [
   "Ziguinchor",
 ];
 
-export const SOIL_TYPES = ["Sandy", "Clay", "Loam", "Sandy Loam", "Clay Loam"];
+export const SOIL_TYPES = ["Sableux", "Argileux", "Limoneux", "Sablo-limoneux", "Argilo-limoneux"];
 
 export const CHAT_USERS = [
     { id: "1", name: "Moussa Faye", avatar: "/avatars/01.png", online: true },
@@ -156,8 +156,8 @@ export const CHAT_USERS = [
 ];
 
 export const CHAT_MESSAGES = [
-    { id: "msg1", userId: "2", message: "Hello Moussa! Did you see the market update for groundnuts?", timestamp: new Date(Date.now() - 1000 * 60 * 5), audioUrl: null },
-    { id: "msg2", userId: "1", message: "Hi Awa! Yes, looks promising. I'm hoping the price holds.", timestamp: new Date(Date.now() - 1000 * 60 * 4), audioUrl: null },
-    { id: "msg3", userId: "2", message: "Fingers crossed. The new fertilizer seems to be working well on my end.", timestamp: new Date(Date.now() - 1000 * 60 * 3), audioUrl: null },
-    { id: "msg4", userId: "4", message: "Welcome everyone! I just joined the chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2), audioUrl: null },
+    { id: "msg1", userId: "2", message: "Bonjour Moussa ! As-tu vu la mise à jour du marché pour les arachides ?", timestamp: new Date(Date.now() - 1000 * 60 * 5), audioUrl: null },
+    { id: "msg2", userId: "1", message: "Salut Awa ! Oui, ça a l'air prometteur. J'espère que le prix se maintiendra.", timestamp: new Date(Date.now() - 1000 * 60 * 4), audioUrl: null },
+    { id: "msg3", userId: "2", message: "Croisons les doigts. Le nouvel engrais semble bien fonctionner de mon côté.", timestamp: new Date(Date.now() - 1000 * 60 * 3), audioUrl: null },
+    { id: "msg4", userId: "4", message: "Bienvenue tout le monde ! Je viens de rejoindre le chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2), audioUrl: null },
 ];

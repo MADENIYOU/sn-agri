@@ -5,21 +5,21 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, ChartConfig } from "
 import { Bar, CartesianGrid, XAxis, YAxis, BarChart as RechartsBarChart } from "recharts";
 
 const chartData = [
-  { month: "January", millet: 186, sorghum: 80 },
-  { month: "February", millet: 305, sorghum: 200 },
-  { month: "March", millet: 237, sorghum: 120 },
-  { month: "April", millet: 73, sorghum: 190 },
-  { month: "May", millet: 209, sorghum: 130 },
-  { month: "June", millet: 214, sorghum: 140 },
+  { month: "Janvier", millet: 186, sorghum: 80 },
+  { month: "Février", millet: 305, sorghum: 200 },
+  { month: "Mars", millet: 237, sorghum: 120 },
+  { month: "Avril", millet: 73, sorghum: 190 },
+  { month: "Mai", millet: 209, sorghum: 130 },
+  { month: "Juin", millet: 214, sorghum: 140 },
 ];
 
 const chartConfig = {
   millet: {
-    label: "Millet (tons)",
+    label: "Mil (tonnes)",
     color: "hsl(var(--primary))",
   },
   sorghum: {
-    label: "Sorghum (tons)",
+    label: "Sorgho (tonnes)",
     color: "hsl(var(--accent))",
   },
 } satisfies ChartConfig;
@@ -28,8 +28,8 @@ export function ProductionChart() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Production Overview</CardTitle>
-        <CardDescription>Your yield for the last 6 months.</CardDescription>
+        <CardTitle>Aperçu de la Production</CardTitle>
+        <CardDescription>Votre rendement pour les 6 derniers mois.</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-64 w-full">

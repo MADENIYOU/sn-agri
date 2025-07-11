@@ -17,9 +17,9 @@ import { SENEGAL_REGIONS, SOIL_TYPES } from "@/lib/constants";
 import { Loader2, Sprout } from "lucide-react";
 
 const formSchema = z.object({
-  region: z.string().min(1, "Region is required."),
-  soilType: z.string().min(1, "Soil type is required."),
-  weatherConditions: z.string().min(1, "Weather conditions are required."),
+  region: z.string().min(1, "La région est requise."),
+  soilType: z.string().min(1, "Le type de sol est requis."),
+  weatherConditions: z.string().min(1, "Les conditions météorologiques sont requises."),
   preferences: z.string().optional(),
 });
 
@@ -33,7 +33,7 @@ export function SearchForm() {
     defaultValues: {
       region: "",
       soilType: "",
-      weatherConditions: "Hot and sunny with occasional rain",
+      weatherConditions: "Chaud et ensoleillé avec des pluies occasionnelles",
       preferences: "",
     },
   });
@@ -46,7 +46,7 @@ export function SearchForm() {
       const response = await cropRecommendationSearch(values);
       setResult(response);
     } catch (e: any) {
-      setError("An error occurred. Please try again.");
+      setError("Une erreur est survenue. Veuillez réessayer.");
       console.error(e);
     }
     setLoading(false);
@@ -56,8 +56,8 @@ export function SearchForm() {
     <>
       <Card>
         <CardHeader>
-            <CardTitle>Farm Conditions</CardTitle>
-            <CardDescription>Provide details about your location and environment.</CardDescription>
+            <CardTitle>Conditions de la Ferme</CardTitle>
+            <CardDescription>Fournissez des détails sur votre emplacement et votre environnement.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -68,11 +68,11 @@ export function SearchForm() {
                   name="region"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Region in Senegal</FormLabel>
+                      <FormLabel>Région au Sénégal</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a region" />
+                            <SelectValue placeholder="Sélectionnez une région" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -90,11 +90,11 @@ export function SearchForm() {
                   name="soilType"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Soil Type</FormLabel>
+                      <FormLabel>Type de sol</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a soil type" />
+                            <SelectValue placeholder="Sélectionnez un type de sol" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -113,9 +113,9 @@ export function SearchForm() {
                 name="weatherConditions"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Current Weather Conditions</FormLabel>
+                    <FormLabel>Conditions Météorologiques Actuelles</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Hot and dry, rainy season starting" {...field} />
+                      <Input placeholder="ex: Chaud et sec, saison des pluies commençant" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -126,9 +126,9 @@ export function SearchForm() {
                 name="preferences"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Preferences (Optional)</FormLabel>
+                    <FormLabel>Préférences (Optionnel)</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Drought resistance, high market demand" {...field} />
+                      <Input placeholder="ex: Résistance à la sécheresse, forte demande du marché" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -136,7 +136,7 @@ export function SearchForm() {
               />
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Get Recommendations
+                Obtenir des recommandations
               </Button>
             </form>
           </Form>
@@ -146,12 +146,12 @@ export function SearchForm() {
       {result && (
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>AI Recommendations</CardTitle>
-            <CardDescription>Based on your input, here are our suggestions.</CardDescription>
+            <CardTitle>Recommandations de l'IA</CardTitle>
+            <CardDescription>En fonction de vos informations, voici nos suggestions.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-semibold text-lg mb-2">Recommended Crops</h3>
+              <h3 className="font-semibold text-lg mb-2">Cultures Recommandées</h3>
               <div className="flex flex-wrap gap-2">
                 {result.crops.map((crop) => (
                   <div key={crop} className="flex items-center gap-2 bg-accent/50 text-accent-foreground rounded-full px-3 py-1 text-sm">
@@ -162,7 +162,7 @@ export function SearchForm() {
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-lg mb-2">Reasoning</h3>
+              <h3 className="font-semibold text-lg mb-2">Raisonnement</h3>
               <p className="text-muted-foreground whitespace-pre-line">{result.reasoning}</p>
             </div>
           </CardContent>

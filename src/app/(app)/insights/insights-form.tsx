@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
-  articles: z.string().min(50, "Please provide at least 50 characters of text to summarize."),
+  articles: z.string().min(50, "Veuillez fournir au moins 50 caractères de texte à résumer."),
 });
 
 export function InsightsForm() {
@@ -38,7 +38,7 @@ export function InsightsForm() {
       const response = await summarizeAgriculturalInsights({ articles: [values.articles] });
       setResult(response);
     } catch (e: any) {
-      setError("An error occurred. Please try again.");
+      setError("Une erreur est survenue. Veuillez réessayer.");
       console.error(e);
     }
     setLoading(false);
@@ -48,8 +48,8 @@ export function InsightsForm() {
     <>
       <Card>
          <CardHeader>
-            <CardTitle>Articles & Reports</CardTitle>
-            <CardDescription>Paste the content you want to summarize below.</CardDescription>
+            <CardTitle>Articles & Rapports</CardTitle>
+            <CardDescription>Collez le contenu que vous souhaitez résumer ci-dessous.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -59,10 +59,10 @@ export function InsightsForm() {
                 name="articles"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Content to Summarize</FormLabel>
+                    <FormLabel>Contenu à résumer</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Paste news articles, market reports, or other agricultural texts here..."
+                        placeholder="Collez ici des articles de presse, des rapports de marché ou d'autres textes agricoles..."
                         className="min-h-[200px]"
                         {...field}
                       />
@@ -73,7 +73,7 @@ export function InsightsForm() {
               />
               <Button type="submit" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Generate Summary
+                Générer un résumé
               </Button>
             </form>
           </Form>
@@ -83,8 +83,8 @@ export function InsightsForm() {
       {result && (
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>AI-Generated Summary</CardTitle>
-            <CardDescription>Key trends and challenges from the provided text.</CardDescription>
+            <CardTitle>Résumé Généré par l'IA</CardTitle>
+            <CardDescription>Tendances et défis clés du texte fourni.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground whitespace-pre-line">{result.summary}</p>

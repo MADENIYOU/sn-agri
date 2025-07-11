@@ -16,10 +16,10 @@ export default function Home() {
           </Link>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
-              <Link href="/login">Log In</Link>
+              <Link href="/login">Se connecter</Link>
             </Button>
             <Button asChild>
-              <Link href="/signup">Sign Up</Link>
+              <Link href="/signup">S'inscrire</Link>
             </Button>
           </div>
         </nav>
@@ -28,40 +28,40 @@ export default function Home() {
         <section className="py-20 md:py-32">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-4xl md:text-6xl font-bold font-headline text-primary mb-4">
-              Empowering Senegalese Agriculture
+              Dynamiser l'Agriculture Sénégalaise
             </h1>
             <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              A collaborative platform providing farmers and stakeholders with data, insights, and connections to foster growth and sustainability.
+              Une plateforme collaborative fournissant aux agriculteurs et aux acteurs des données, des informations et des connexions pour favoriser la croissance et la durabilité.
             </p>
             <Button size="lg" asChild>
-              <Link href="/dashboard">Enter the Platform</Link>
+              <Link href="/dashboard">Entrer sur la Plateforme</Link>
             </Button>
           </div>
         </section>
 
         <section id="features" className="py-20 bg-card">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-3xl font-bold text-center font-headline mb-12">Our Features</h2>
+            <h2 className="text-3xl font-bold text-center font-headline mb-12">Nos Fonctionnalités</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
               <FeatureCard
                 icon={<Map className="h-10 w-10 text-primary" />}
-                title="Interactive Map"
-                description="Visualize agricultural regions, weather patterns, and farmer networks across Senegal."
+                title="Carte Interactive"
+                description="Visualisez les régions agricoles, les modèles météorologiques et les réseaux d'agriculteurs à travers le Sénégal."
               />
               <FeatureCard
                 icon={<BrainCircuit className="h-10 w-10 text-primary" />}
-                title="AI-Powered Search"
-                description="Get instant, intelligent recommendations for crops and practices tailored to your specific conditions."
+                title="Recherche par IA"
+                description="Obtenez des recommandations instantanées et intelligentes pour les cultures et les pratiques adaptées à vos conditions spécifiques."
               />
               <FeatureCard
                 icon={<Sprout className="h-10 w-10 text-primary" />}
-                title="Crop Database"
-                description="Access detailed information on a wide variety of crops, from planting to harvest."
+                title="Base de Données des Cultures"
+                description="Accédez à des informations détaillées sur une grande variété de cultures, de la plantation à la récolte."
               />
               <FeatureCard
                 icon={<Users className="h-10 w-10 text-primary" />}
-                title="Community Feed"
-                description="Connect with fellow producers, buyers, and experts. Share knowledge and opportunities."
+                title="Fil Communautaire"
+                description="Connectez-vous avec d'autres producteurs, acheteurs et experts. Partagez connaissances et opportunités."
               />
             </div>
           </div>
@@ -73,7 +73,7 @@ export default function Home() {
               <div>
                 <Image
                   src="https://placehold.co/600x400.png"
-                  alt="Farmers in Senegal"
+                  alt="Agriculteurs au Sénégal"
                   width={600}
                   height={400}
                   className="rounded-lg shadow-xl"
@@ -81,12 +81,12 @@ export default function Home() {
                 />
               </div>
               <div>
-                <h3 className="text-3xl font-bold font-headline mb-4">From Data to Decisions</h3>
+                <h3 className="text-3xl font-bold font-headline mb-4">Des Données aux Décisions</h3>
                 <p className="text-muted-foreground mb-4">
-                  SenAgriConnect transforms complex agricultural data into actionable insights. Our dashboards provide a clear view of your performance and market trends, helping you make informed decisions that boost productivity and profitability.
+                  SenAgriConnect transforme des données agricoles complexes en informations exploitables. Nos tableaux de bord offrent une vision claire de vos performances et des tendances du marché, vous aidant à prendre des décisions éclairées qui augmentent la productivité et la rentabilité.
                 </p>
                 <Button variant="link" className="p-0" asChild>
-                  <Link href="/signup">Join the revolution &rarr;</Link>
+                  <Link href="/signup">Rejoignez la révolution &rarr;</Link>
                 </Button>
               </div>
             </div>
@@ -95,7 +95,7 @@ export default function Home() {
       </main>
       <footer className="py-6 bg-card">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center text-muted-foreground">
-          <p>&copy; {new Date().getFullYear()} SenAgriConnect. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} SenAgriConnect. Tous droits réservés.</p>
         </div>
       </footer>
     </div>
