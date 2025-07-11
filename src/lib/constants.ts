@@ -23,7 +23,7 @@ export const CROP_DATA = [
     bestPractices: "Planter au début de la saison des pluies. Nécessite un sol bien drainé. L'association avec des légumineuses comme le niébé peut améliorer la fertilité du sol.",
     productionConditions: "Tolérant à la sécheresse. Prospère dans les sols sableux. La plage de température optimale est de 26-30°C.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/millet.jpg",
       aiHint: "millet field"
     }
   },
@@ -34,7 +34,7 @@ export const CROP_DATA = [
     bestPractices: "Utiliser des semences certifiées pour de meilleurs rendements. Pratiquer la rotation des cultures pour gérer les ravageurs et les maladies. Un désherbage opportun est crucial.",
     productionConditions: "Préfère les sols argilo-limoneux mais s'adapte à de nombreux types. Nécessite moins d'eau que le maïs. Le plein soleil est nécessaire.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/sorghum.jpg",
       aiHint: "sorghum crop"
     }
   },
@@ -45,7 +45,7 @@ export const CROP_DATA = [
     bestPractices: "Assurer une bonne préparation du sol. Appliquer des engrais phosphatés. Récolter à la bonne maturité pour éviter la contamination par l'aflatoxine.",
     productionConditions: "Nécessite un sol sableux ou sablo-limoneux pour une pénétration facile des gynophores. A besoin de précipitations modérées, en particulier pendant la floraison et la formation des gousses.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/peanuts.jpg",
       aiHint: "groundnut plant"
     }
   },
@@ -56,7 +56,7 @@ export const CROP_DATA = [
     bestPractices: "Peut être cultivé en culture pure ou en association avec des céréales comme le mil et le sorgho. Protéger contre les insectes nuisibles, en particulier pendant la floraison.",
     productionConditions: "Très tolérant à la sécheresse et adapté aux sols sableux. Prospère par temps chaud.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/cowpea.png",
       aiHint: "cowpea field"
     }
   },
@@ -67,7 +67,7 @@ export const CROP_DATA = [
     bestPractices: "Nécessite plus d'eau et de nutriments que le mil ou le sorgho. Planter en lignes pour une gestion plus facile. Les variétés hybrides peuvent augmenter considérablement le rendement.",
     productionConditions: "Préfère les sols limoneux fertiles et bien drainés. Sensible à la sécheresse, en particulier pendant les stades de la panicule et de la soie.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/maize.jpg",
       aiHint: "maize plantation"
     }
   },
@@ -78,7 +78,7 @@ export const CROP_DATA = [
     bestPractices: "Propagé à partir de boutures de tige. Le contrôle des mauvaises herbes est essentiel dans les premiers mois. Peut être récolté de 8 à 24 mois après la plantation.",
     productionConditions: "S'adapte à une large gamme de types de sols mais ne tolère pas l'engorgement. Prospère dans les climats tropicaux.",
     image: {
-      src: "https://placehold.co/800x600.png",
+      src: "/images/manioc.jpg",
       aiHint: "cassava roots"
     }
   },

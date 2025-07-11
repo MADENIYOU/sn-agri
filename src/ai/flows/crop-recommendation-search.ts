@@ -58,14 +58,37 @@ const prompt = ai.definePrompt({
   `,
 });
 
-const cropRecommendationSearchFlow = ai.defineFlow(
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  retries = 3,
+  delay = 1000
+): Promise<T> {
+  let attempt = 0;
+  while (attempt < retries) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      if (attempt === retries - 1) throw err;
+      console.warn(`Retry attempt ${attempt + 1} failed: ${err.message}`);
+      await new Promise(res => setTimeout(res, delay));
+      attempt++;
+      delay *= 2; // Exponential backoff
+    }
+  }
+  throw new Error('Retry attempts exhausted');
+}
+
+/**
+ * Crop Recommendation Search Flow.
+ */
+export const cropRecommendationSearchFlow = ai.defineFlow(
   {
     name: 'cropRecommendationSearchFlow',
     inputSchema: CropRecommendationSearchInputSchema,
     outputSchema: CropRecommendationSearchOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+    const { output } = await withRetry(() => prompt(input));
     return output!;
   }
 );

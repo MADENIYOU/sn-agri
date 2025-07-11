@@ -72,7 +72,7 @@ export default function Home() {
             <div className="grid md:grid-cols-2 gap-12 items-center">
               <div>
                 <Image
-                  src="https://placehold.co/600x400.png"
+                  src="/images/root-crops.jpg"
                   alt="Agriculteurs au Sénégal"
                   width={600}
                   height={400}
