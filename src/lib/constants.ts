@@ -156,8 +156,8 @@ export const CHAT_USERS = [
 ];
 
 export const CHAT_MESSAGES = [
-    { id: "msg1", userId: "2", message: "Hello Moussa! Did you see the market update for groundnuts?", timestamp: new Date(Date.now() - 1000 * 60 * 5) },
-    { id: "msg2", userId: "1", message: "Hi Awa! Yes, looks promising. I'm hoping the price holds.", timestamp: new Date(Date.now() - 1000 * 60 * 4) },
-    { id: "msg3", userId: "2", message: "Fingers crossed. The new fertilizer seems to be working well on my end.", timestamp: new Date(Date.now() - 1000 * 60 * 3) },
-    { id: "msg4", userId: "4", message: "Welcome everyone! I just joined the chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2) },
+    { id: "msg1", userId: "2", message: "Hello Moussa! Did you see the market update for groundnuts?", timestamp: new Date(Date.now() - 1000 * 60 * 5), audioUrl: null },
+    { id: "msg2", userId: "1", message: "Hi Awa! Yes, looks promising. I'm hoping the price holds.", timestamp: new Date(Date.now() - 1000 * 60 * 4), audioUrl: null },
+    { id: "msg3", userId: "2", message: "Fingers crossed. The new fertilizer seems to be working well on my end.", timestamp: new Date(Date.now() - 1000 * 60 * 3), audioUrl: null },
+    { id: "msg4", userId: "4", message: "Welcome everyone! I just joined the chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2), audioUrl: null },
 ];

@@ -6,11 +6,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Loader2, Volume2 } from 'lucide-react';
+import { Send, Loader2, Mic, StopCircle, Trash2, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
-import { generateSpeech } from '@/ai/flows/text-to-speech';
 import type { Message, User } from '@/lib/types';
 
 
@@ -20,8 +19,13 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>(CHAT_MESSAGES);
   const [newMessage, setNewMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState<User>(CHAT_USERS[1]);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
-  const [loadingAudioId, setLoadingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -32,26 +36,50 @@ export default function ChatPage() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        setAudioUrl(audioUrl);
+        stream.getTracks().forEach(track => track.stop()); // Stop the microphone stream
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      // You might want to show a toast notification to the user here
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
   
-  const handlePlayAudio = async (message: Message) => {
+  const handlePlayAudio = (message: Message) => {
     if (playingMessageId === message.id) {
       audioRef.current?.pause();
       setPlayingMessageId(null);
       return;
     }
-    
-    setLoadingAudioId(message.id);
-    try {
-      const response = await generateSpeech(message.message);
-      if (response.media && audioRef.current) {
-        audioRef.current.src = response.media;
+
+    if (message.audioUrl && audioRef.current) {
+        audioRef.current.src = message.audioUrl;
         audioRef.current.play();
         setPlayingMessageId(message.id);
-      }
-    } catch (error) {
-      console.error("Error generating speech:", error);
-    } finally {
-      setLoadingAudioId(null);
     }
   };
   
@@ -70,17 +98,19 @@ export default function ChatPage() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '') return;
+    if (newMessage.trim() === '' && !audioUrl) return;
 
     const message: Message = {
       id: `msg${Date.now()}`,
       userId: currentUser.id,
       message: newMessage,
+      audioUrl: audioUrl,
       timestamp: new Date(),
     };
 
     setMessages([...messages, message]);
     setNewMessage('');
+    setAudioUrl(null);
 
     // Simulate a reply from the other user
     setTimeout(() => {
@@ -88,6 +118,7 @@ export default function ChatPage() {
         id: `msg${Date.now() + 1}`,
         userId: selectedUser.id,
         message: 'This is an automated reply!',
+        audioUrl: null,
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, reply]);
@@ -109,7 +140,7 @@ export default function ChatPage() {
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto">
           <div className="flex flex-col gap-2">
-            {CHAT_USERS.map((user) => (
+            {CHAT_USERS.filter(u => u.id !== currentUser.id).map((user) => (
               <Button
                 key={user.id}
                 variant={selectedUser.id === user.id ? 'secondary' : 'ghost'}
@@ -166,15 +197,6 @@ export default function ChatPage() {
                     </Avatar>
                   )}
                    <div className="flex items-center gap-2">
-                    {!isCurrentUser && (
-                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handlePlayAudio(msg)}>
-                        {loadingAudioId === msg.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Volume2 className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
-                        )}
-                      </Button>
-                    )}
                     <div
                       className={cn(
                         'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2',
@@ -183,20 +205,20 @@ export default function ChatPage() {
                           : 'bg-muted'
                       )}
                     >
-                      <p className="text-sm">{msg.message}</p>
+                      {msg.audioUrl ? (
+                        <div className="flex items-center gap-2">
+                           <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handlePlayAudio(msg)}>
+                                <Play className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
+                           </Button>
+                           <div className="w-40 h-1 bg-muted/50 rounded-full" />
+                        </div>
+                      ) : (
+                         <p className="text-sm">{msg.message}</p>
+                      )}
                        <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
                         {formatDistanceToNow(msg.timestamp, { addSuffix: true })}
                       </p>
                     </div>
-                     {isCurrentUser && (
-                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handlePlayAudio(msg)}>
-                        {loadingAudioId === msg.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Volume2 className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
-                        )}
-                      </Button>
-                    )}
                   </div>
                    {isCurrentUser && (
                     <Avatar className="h-8 w-8">
@@ -211,13 +233,33 @@ export default function ChatPage() {
           </div>
         </CardContent>
         <div className="p-4 border-t">
+          {audioUrl && !isRecording && (
+             <div className="flex items-center gap-2 p-2 rounded-lg bg-muted mb-2">
+                <audio src={audioUrl} controls className="flex-1" />
+                <Button size="icon" variant="ghost" onClick={() => setAudioUrl(null)}>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+             </div>
+          )}
           <form onSubmit={handleSendMessage} className="flex gap-2">
             <Input
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type your message..."
+              disabled={isRecording || !!audioUrl}
             />
-            <Button type="submit" size="icon">
+            {isRecording ? (
+               <Button type="button" size="icon" onClick={stopRecording} variant="destructive">
+                <StopCircle className="h-4 w-4" />
+                <span className="sr-only">Stop Recording</span>
+              </Button>
+            ) : (
+              <Button type="button" size="icon" onClick={startRecording}>
+                <Mic className="h-4 w-4" />
+                <span className="sr-only">Start Recording</span>
+              </Button>
+            )}
+            <Button type="submit" size="icon" disabled={isRecording}>
               <Send className="h-4 w-4" />
               <span className="sr-only">Send</span>
             </Button>
