@@ -1,4 +1,4 @@
-import MapClient from "./map-client";
+import SenegalMap from "./senegal-map";
 
 export default function MapPage() {
   return (
@@ -6,11 +6,11 @@ export default function MapPage() {
       <div>
         <h1 className="text-3xl font-bold font-headline">Interactive Agricultural Map</h1>
         <p className="text-muted-foreground">
-          Explore farmer locations, regional data, and weather across Senegal.
+          Explore farmer locations and regional data across Senegal.
         </p>
       </div>
       <div className="flex-grow rounded-lg overflow-hidden border">
-        <MapClient />
+        <SenegalMap />
       </div>
     </div>
   );
