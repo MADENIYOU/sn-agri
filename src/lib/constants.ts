@@ -1,4 +1,4 @@
-import { BarChart2, BrainCircuit, Home, Map, MessageSquare, Sprout, User, Users } from "lucide-react";
+import { BarChart2, BrainCircuit, Home, Map, MessageSquare, Sprout, User, Users, MessageCircle } from "lucide-react";
 
 export const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard", icon: Home },
@@ -7,6 +7,7 @@ export const NAV_LINKS = [
   { href: "/insights", label: "AI Insights", icon: BarChart2 },
   { href: "/crops", label: "Crop Database", icon: Sprout },
   { href: "/feed", label: "Community Feed", icon: MessageSquare },
+  { href: "/chat", label: "Chat", icon: MessageCircle },
 ];
 
 export const USER_NAV_LINKS = [
@@ -146,3 +147,17 @@ export const SENEGAL_REGIONS = [
 ];
 
 export const SOIL_TYPES = ["Sandy", "Clay", "Loam", "Sandy Loam", "Clay Loam"];
+
+export const CHAT_USERS = [
+    { id: "1", name: "Moussa Faye", avatar: "/avatars/01.png", online: true },
+    { id: "2", name: "Awa Diallo", avatar: "/avatars/02.png", online: true },
+    { id: "3", name: "Ousmane Sow", avatar: "/avatars/03.png", online: false },
+    { id: "4", name: "Fatou Ndiaye", avatar: "/avatars/04.png", online: true },
+];
+
+export const CHAT_MESSAGES = [
+    { id: "msg1", userId: "2", message: "Hello Moussa! Did you see the market update for groundnuts?", timestamp: new Date(Date.now() - 1000 * 60 * 5) },
+    { id: "msg2", userId: "1", message: "Hi Awa! Yes, looks promising. I'm hoping the price holds.", timestamp: new Date(Date.now() - 1000 * 60 * 4) },
+    { id: "msg3", userId: "2", message: "Fingers crossed. The new fertilizer seems to be working well on my end.", timestamp: new Date(Date.now() - 1000 * 60 * 3) },
+    { id: "msg4", userId: "4", message: "Welcome everyone! I just joined the chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2) },
+];
