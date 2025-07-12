@@ -153,43 +153,58 @@ export default function ChatPage() {
     
   // Subscribe to real-time updates for messages
   useEffect(() => {
-    if (!selectedConversation) return;
-
-    // Clean up previous channel subscription
+    if (!selectedConversation || !currentUser) return;
+  
     if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+      supabase.removeChannel(channelRef.current);
     }
-    
-    const channel = supabase.channel(`messages:${selectedConversation.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` }, async (payload) => {
-        const newMessage = payload.new as Message;
-        
-        // Fetch sender profile since it's not in the payload
-        const { data: senderData, error: senderError } = await supabase
-          .from('profiles')
-          .select('full_name, avatar_url')
-          .eq('id', newMessage.sender_id)
-          .single();
-
-        if (senderError) {
-          console.error("Error fetching sender for new message", senderError);
-        } else {
-           newMessage.sender = senderData;
+  
+    const channel = supabase
+      .channel(`messages:${selectedConversation.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `conversation_id=eq.${selectedConversation.id}`,
+        },
+        async (payload) => {
+          const newMessage = payload.new as Message;
+  
+          // Ignore messages sent by the current user as they are handled optimistically
+          if (newMessage.sender_id === currentUser.id) {
+            return;
+          }
+  
+          // Fetch sender profile since it's not in the payload
+          const { data: senderData, error: senderError } = await supabase
+            .from('profiles')
+            .select('full_name, avatar_url')
+            .eq('id', newMessage.sender_id)
+            .single();
+  
+          if (senderError) {
+            console.error("Error fetching sender for new message", senderError);
+            newMessage.sender = { full_name: "Utilisateur Inconnu", avatar_url: "" };
+          } else {
+            newMessage.sender = senderData;
+          }
+  
+          setMessages((currentMessages) => [...currentMessages, newMessage]);
         }
-
-        setMessages(currentMessages => [...currentMessages, newMessage]);
-      })
+      )
       .subscribe();
-
+  
     channelRef.current = channel;
-
+  
     return () => {
       if (channelRef.current) {
         supabase.removeChannel(channelRef.current);
         channelRef.current = null;
       }
     };
-  }, [selectedConversation, supabase]);
+  }, [selectedConversation, supabase, currentUser]);
 
 
   const handleCreateConversation = async () => {
@@ -271,44 +286,69 @@ export default function ChatPage() {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser || !selectedConversation || (newMessage.trim() === '' && !audioBlob)) return;
-    
+  
     setLoading(true);
-    
+    const tempMessageId = `temp-${Date.now()}`;
+    const sentAt = new Date().toISOString();
+  
     try {
-        let audioUrl: string | null = null;
-        if (audioBlob) {
-            const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.webm`;
-            const { error: uploadError } = await supabase.storage
-                .from('chat-audio')
-                .upload(filePath, audioBlob);
+      let audioUrl: string | null = null;
+      if (audioBlob) {
+        const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.webm`;
+        const { error: uploadError } = await supabase.storage
+          .from('chat-audio') // Corrected bucket name
+          .upload(filePath, audioBlob);
+  
+        if (uploadError) throw uploadError;
+  
+        const { data: { publicUrl } } = supabase.storage
+          .from('chat-audio') // Corrected bucket name
+          .getPublicUrl(filePath);
+        audioUrl = publicUrl;
+      }
+  
+      const messageToInsert = {
+        conversation_id: selectedConversation.id,
+        sender_id: currentUser.id,
+        message: newMessage,
+        audio_url: audioUrl,
+        timestamp: sentAt,
+      };
 
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('chat_audio')
-                .getPublicUrl(filePath);
-            audioUrl = publicUrl;
+      // Optimistically add message to the UI
+      const optimisticMessage: Message = {
+        ...messageToInsert,
+        id: tempMessageId,
+        sender: {
+          full_name: currentUser.user_metadata.fullName || "Moi",
+          avatar_url: currentUser.user_metadata.avatar_url || ""
         }
+      }
+      setMessages(current => [...current, optimisticMessage]);
 
-        const { error: insertError } = await supabase
-            .from('messages')
-            .insert({
-                conversation_id: selectedConversation.id,
-                sender_id: currentUser.id,
-                message: newMessage,
-                audio_url: audioUrl,
-            });
-
-        if (insertError) throw insertError;
-
-        setNewMessage('');
-        setAudioBlob(null);
+      setNewMessage('');
+      setAudioBlob(null);
+  
+      const { data: insertedMessage, error: insertError } = await supabase
+        .from('messages')
+        .insert(messageToInsert)
+        .select()
+        .single();
+  
+      if (insertError) {
+        // Revert optimistic update on failure
+        setMessages(current => current.filter(m => m.id !== tempMessageId));
+        throw insertError;
+      }
+      
+      // Replace temporary message with the real one from the database
+      setMessages(current => current.map(m => (m.id === tempMessageId ? { ...optimisticMessage, ...insertedMessage } : m)));
 
     } catch (error: any) {
-        console.error("Erreur d'envoi de message:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: error.message || "Le message n'a pas pu être envoyé." });
+      console.error("Erreur d'envoi de message:", error);
+      toast({ variant: 'destructive', title: 'Erreur', description: error.message || "Le message n'a pas pu être envoyé." });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
