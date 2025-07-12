@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { findUserByEmail } from './actions';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
@@ -236,41 +237,27 @@ export default function ChatPage() {
         setCreatingConversation(false);
     }
   };
-
+  
   const handleAddMember = async () => {
     if (newMemberEmail.trim() === '') return;
     setFindingUser(true);
-  
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .eq('email', newMemberEmail.trim())
-        .single();
-  
-      if (error || !data) {
-        throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
-      }
-  
-      const userToAdd: ChatUser = {
-        id: data.id,
-        name: data.full_name || 'Utilisateur Inconnu',
-        email: data.email || newMemberEmail.trim(),
-      };
-      
-      if (!newMembers.some(m => m.id === userToAdd.id)) {
-          setNewMembers([...newMembers, userToAdd]);
+
+    const { user, error } = await findUserByEmail(newMemberEmail);
+
+    if (error || !user) {
+      toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: error || 'Aucun utilisateur trouvé avec cet email.' });
+    } else {
+      if (!newMembers.some(m => m.id === user.id)) {
+          setNewMembers([...newMembers, user]);
           setNewMemberEmail('');
       } else {
           toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
       }
-  
-    } catch(error: any) {
-        toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: error.message });
-    } finally {
-        setFindingUser(false);
     }
+    
+    setFindingUser(false);
   };
+
 
   const handleRemoveMember = (memberId: string) => {
     if (currentUser && memberId === currentUser.id) {
