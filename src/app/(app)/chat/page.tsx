@@ -279,7 +279,7 @@ export default function ChatPage() {
         if (audioBlob) {
             const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.webm`;
             const { error: uploadError } = await supabase.storage
-                .from('chat_audio')
+                .from('chat-audio')
                 .upload(filePath, audioBlob);
 
             if (uploadError) throw uploadError;
