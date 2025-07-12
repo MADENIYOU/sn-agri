@@ -1,6 +1,4 @@
 
-import type { Timestamp } from 'firebase/firestore';
-
 export type User = {
     id: string;
     name: string;
@@ -17,15 +15,18 @@ export type ChatUser = {
 export type Conversation = {
     id: string;
     name: string;
-    members: string[]; // array of user UIDs
-    createdBy: string;
-    createdAt: Timestamp;
+    members: string[]; // array of user UUIDs
+    created_by: string;
+    created_at: string; // ISO 8601 timestamp string
 };
 
 export type Message = {
     id: string;
-    senderId: string;
+    sender_id: string;
+    conversation_id: string;
     message: string;
-    audioUrl?: string | null;
-    timestamp: Timestamp;
+    audio_url?: string | null;
+    timestamp: string; // ISO 8601 timestamp string
 };
+
+    

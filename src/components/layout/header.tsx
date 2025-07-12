@@ -27,13 +27,14 @@ export default function Header() {
   const handleLogout = async () => {
     await logout();
     router.push('/');
+    router.refresh();
   };
 
-  const getInitials = (email: string | null | undefined) => {
-    if (!email) return "??";
-    const name = user?.displayName;
-    if (name) return name.split(' ').map(n => n[0]).join('');
-    return email.substring(0, 2).toUpperCase();
+  const getInitials = () => {
+    if (!user) return "??";
+    const name = user.user_metadata.fullName;
+    if (name) return name.split(' ').map((n: string) => n[0]).join('');
+    return user.email?.substring(0, 2).toUpperCase() || "??";
   };
 
   return (
@@ -50,8 +51,8 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
             <Avatar>
-              <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || "User"} />
-              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={user?.user_metadata.fullName || "User"} />
+              <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
             <span className="sr-only">Ouvrir le menu utilisateur</span>
           </Button>
@@ -72,3 +73,5 @@ export default function Header() {
     </header>
   );
 }
+
+    

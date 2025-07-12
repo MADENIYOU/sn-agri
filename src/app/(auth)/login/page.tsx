@@ -39,16 +39,17 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setLoading(true);
-    try {
-      await login(data.email, data.password);
-      router.push('/dashboard');
-    } catch (error: any) {
-      toast({
+    const error = await login(data.email, data.password);
+    if (error) {
+       toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
         description: error.message || 'Une erreur est survenue. Veuillez réessayer.',
       });
       setLoading(false);
+    } else {
+        router.push('/dashboard');
+        router.refresh(); // Important to refresh server components
     }
   };
 
@@ -112,3 +113,5 @@ export default function LoginPage() {
     </Card>
   );
 }
+
+    

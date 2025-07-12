@@ -13,15 +13,15 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Message, Conversation, ChatUser } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-import { firestore, storage } from '@/lib/firebase';
-import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, Timestamp, doc, getDocs } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CHAT_USERS } from '@/lib/constants'; // For simulation
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const supabase = createClient();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
@@ -47,6 +47,7 @@ export default function ChatPage() {
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const channelRef = useRef<RealtimeChannel | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,7 +60,7 @@ export default function ChatPage() {
   // Effect to add current user to new chat members list
   useEffect(() => {
     if(currentUser && isDialogOpen) {
-      const self = { id: currentUser.uid, name: currentUser.displayName || currentUser.email || 'Moi', email: currentUser.email! };
+      const self = { id: currentUser.id, name: currentUser.user_metadata.fullName || currentUser.email || 'Moi', email: currentUser.email! };
       if (!newMembers.some(m => m.id === self.id)) {
         setNewMembers([self]);
       }
@@ -67,36 +68,42 @@ export default function ChatPage() {
   }, [currentUser, isDialogOpen, newMembers]);
 
   // Fetch conversations the current user is part of
-  useEffect(() => {
+  const fetchConversations = useCallback(async () => {
     if (!currentUser) return;
-
     setLoadingConversations(true);
-    const conversationsRef = collection(firestore, 'conversations');
-    const q = query(conversationsRef, where('members', 'array-contains', currentUser.uid));
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const convos: Conversation[] = [];
-      querySnapshot.forEach((doc) => {
-        convos.push({ id: doc.id, ...doc.data() } as Conversation);
-      });
+    const { data, error } = await supabase
+      .from('conversations')
+      .select(`
+        *,
+        members:conversation_members ( user_id )
+      `)
+      .in('id', (await supabase.from('conversation_members').select('conversation_id').eq('user_id', currentUser.id)).data?.map(d => d.conversation_id) || []);
+
+    if (error) {
+      console.error("Erreur de récupération des conversations:", error);
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les conversations." });
+    } else {
+      const convos: Conversation[] = data.map(convo => ({
+        id: convo.id,
+        name: convo.name,
+        created_at: convo.created_at,
+        created_by: convo.created_by,
+        members: convo.members.map((m: any) => m.user_id),
+      }));
       setConversations(convos);
-      if (convos.length > 0 && !selectedConversation) {
-        // Automatically select the first conversation if none is selected
-        // setSelectedConversation(convos[0]);
-      } else if (selectedConversation) {
+       if (selectedConversation) {
         // refresh selected conversation data
         const updatedSelected = convos.find(c => c.id === selectedConversation.id);
         setSelectedConversation(updatedSelected || null);
       }
-      setLoadingConversations(false);
-    }, (error) => {
-      console.error("Erreur de récupération des conversations:", error);
-      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les conversations." });
-      setLoadingConversations(false);
-    });
+    }
+    setLoadingConversations(false);
+  }, [currentUser, supabase, selectedConversation]);
 
-    return () => unsubscribe();
-  }, [currentUser, toast]);
+  useEffect(() => {
+    fetchConversations();
+  }, [fetchConversations]);
 
   // Fetch messages for the selected conversation
   useEffect(() => {
@@ -105,29 +112,48 @@ export default function ChatPage() {
         return;
     };
 
-    const messagesRef = collection(firestore, 'conversations', selectedConversation.id, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    const fetchMessages = async () => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', selectedConversation.id)
+            .order('timestamp', { ascending: true });
+        
+        if (error) {
+            console.error("Erreur de récupération des messages:", error);
+            toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les messages." });
+        } else {
+            setMessages(data as Message[]);
+        }
+    }
+    fetchMessages();
+  }, [selectedConversation, supabase, toast]);
+    
+  // Subscribe to real-time updates for messages
+  useEffect(() => {
+    if (!selectedConversation) return;
 
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      const msgs: Message[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        msgs.push({
-          id: doc.id,
-          senderId: data.senderId,
-          message: data.message,
-          audioUrl: data.audioUrl,
-          timestamp: data.timestamp,
-        });
-      });
-      setMessages(msgs);
-    }, (error) => {
-      console.error("Erreur de récupération des messages:", error);
-      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les messages." });
-    });
+    // Clean up previous channel subscription
+    if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+    }
+    
+    const channel = supabase.channel(`messages:${selectedConversation.id}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` }, payload => {
+        setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+      })
+      .subscribe();
 
-    return () => unsubscribe();
-  }, [selectedConversation, toast]);
+    channelRef.current = channel;
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current);
+        channelRef.current = null;
+      }
+    };
+  }, [selectedConversation, supabase]);
+
 
   const handleCreateConversation = async () => {
     if (!currentUser || newGroupName.trim() === '' || newMembers.length < 2) {
@@ -136,21 +162,37 @@ export default function ChatPage() {
     }
     setCreatingConversation(true);
     try {
-        const memberIds = newMembers.map(m => m.id);
-        const docRef = await addDoc(collection(firestore, 'conversations'), {
-            name: newGroupName,
-            members: memberIds,
-            createdBy: currentUser.uid,
-            createdAt: serverTimestamp(),
-        });
+        const { data: convoData, error: convoError } = await supabase
+            .from('conversations')
+            .insert({ name: newGroupName, created_by: currentUser.id })
+            .select()
+            .single();
+
+        if (convoError) throw convoError;
+
+        const membersToInsert = newMembers.map(m => ({ conversation_id: convoData.id, user_id: m.id }));
+        const { error: membersError } = await supabase
+            .from('conversation_members')
+            .insert(membersToInsert);
+        
+        if (membersError) throw membersError;
+
         toast({ title: 'Succès', description: 'Conversation créée avec succès.'});
         setIsDialogOpen(false);
         setNewGroupName('');
         setNewMembers([]);
-        setSelectedConversation({ id: docRef.id, name: newGroupName, members: memberIds, createdBy: currentUser.uid, createdAt: Timestamp.now() });
-    } catch (error) {
+        const newConvo: Conversation = {
+            id: convoData.id,
+            name: convoData.name,
+            members: newMembers.map(m => m.id),
+            created_by: convoData.created_by,
+            created_at: convoData.created_at,
+        };
+        setConversations(prev => [...prev, newConvo]);
+        setSelectedConversation(newConvo);
+    } catch (error: any) {
         console.error("Erreur de création de conversation:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: "La conversation n'a pas pu être créée." });
+        toast({ variant: 'destructive', title: 'Erreur', description: error.message || "La conversation n'a pas pu être créée." });
     } finally {
         setCreatingConversation(false);
     }
@@ -159,47 +201,31 @@ export default function ChatPage() {
   const handleAddMember = async () => {
     if (newMemberEmail.trim() === '') return;
     
-    // In a real app, this would be a secure Cloud Function call.
-    // Here we query firestore directly which is not secure for production.
-    try {
-        const usersRef = collection(firestore, 'users'); // Assuming you have a 'users' collection
-        const q = query(usersRef, where("email", "==", newMemberEmail.trim()));
-        const querySnapshot = await getDocs(q);
-        
-        if (querySnapshot.empty) {
-            toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Aucun utilisateur avec l'email ${newMemberEmail}`});
-            return;
-        }
+    // In a real app, this should be a secure RPC call to a Postgres function.
+    // For this prototype, we'll do a direct lookup, which isn't recommended for production
+    // as it might expose user emails if RLS isn't set up perfectly.
+    const { data, error } = await supabase
+      .from('profiles') // Assuming a 'profiles' table exists that is linked to auth.users
+      .select('id, full_name, email')
+      .eq('email', newMemberEmail.trim())
+      .single();
 
-        const userDoc = querySnapshot.docs[0];
-        const userToAdd = { id: userDoc.id, name: userDoc.data().displayName, email: userDoc.data().email };
-
-        if (!newMembers.some(m => m.id === userToAdd.id)) {
-            setNewMembers([...newMembers, userToAdd]);
-            setNewMemberEmail('');
-        } else {
-            toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
-        }
-    } catch (e) {
-        // Fallback to simulation if 'users' collection doesn't exist or query fails
-        console.warn("Firestore 'users' collection not found or query failed. Falling back to simulated user search.", e)
-        const userToAdd = CHAT_USERS.find(u => u.name.toLowerCase().includes(newMemberEmail.toLowerCase().split('@')[0]));
-
-        if (userToAdd) {
-             if (!newMembers.some(m => m.id === userToAdd.id)) {
-                setNewMembers([...newMembers, { id: userToAdd.id, name: userToAdd.name, email: `${userToAdd.name.split(' ')[0].toLowerCase()}@example.com` }]);
-                setNewMemberEmail('');
-            } else {
-                toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
-            }
-        } else {
-            toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Impossible de trouver un utilisateur avec l'email ${newMemberEmail}`});
-        }
+    if (error || !data) {
+        toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Aucun utilisateur avec l'email ${newMemberEmail}`});
+        return;
+    }
+    
+    const userToAdd = { id: data.id, name: data.full_name || 'Utilisateur Inconnu', email: data.email };
+    if (!newMembers.some(m => m.id === userToAdd.id)) {
+        setNewMembers([...newMembers, userToAdd]);
+        setNewMemberEmail('');
+    } else {
+        toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
     }
   };
 
   const handleRemoveMember = (memberId: string) => {
-    if (memberId === currentUser?.uid) {
+    if (memberId === currentUser?.id) {
         toast({ variant: "destructive", description: "Vous ne pouvez pas vous retirer vous-même." });
         return;
     }
@@ -212,29 +238,40 @@ export default function ChatPage() {
     if (!currentUser || !selectedConversation || (newMessage.trim() === '' && !audioBlob)) return;
     
     setLoading(true);
-    const messagesRef = collection(firestore, 'conversations', selectedConversation.id, 'messages');
-
+    
     try {
         let audioUrl: string | null = null;
         if (audioBlob) {
-            const audioFileRef = ref(storage, `chat_audio/${selectedConversation.id}/${Date.now()}.webm`);
-            const snapshot = await uploadBytes(audioFileRef, audioBlob);
-            audioUrl = await getDownloadURL(snapshot.ref);
+            const filePath = `chat_audio/${selectedConversation.id}/${Date.now()}.webm`;
+            const { error: uploadError } = await supabase.storage
+                .from('chat_audio')
+                .upload(filePath, audioBlob);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat_audio')
+                .getPublicUrl(filePath);
+            audioUrl = publicUrl;
         }
 
-        await addDoc(messagesRef, {
-            senderId: currentUser.uid,
-            message: newMessage,
-            audioUrl: audioUrl,
-            timestamp: serverTimestamp(),
-        });
+        const { error: insertError } = await supabase
+            .from('messages')
+            .insert({
+                conversation_id: selectedConversation.id,
+                sender_id: currentUser.id,
+                message: newMessage,
+                audio_url: audioUrl,
+            });
+
+        if (insertError) throw insertError;
 
         setNewMessage('');
         setAudioBlob(null);
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Erreur d'envoi de message:", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: "Le message n'a pas pu être envoyé." });
+        toast({ variant: 'destructive', title: 'Erreur', description: error.message || "Le message n'a pas pu être envoyé." });
     } finally {
         setLoading(false);
     }
@@ -275,12 +312,12 @@ export default function ChatPage() {
   };
   
   const handlePlayAudio = (message: Message) => {
-    if (audioRef.current && message.audioUrl) {
+    if (audioRef.current && message.audio_url) {
       if (playingMessageId === message.id) {
         audioRef.current.pause();
         setPlayingMessageId(null);
       } else {
-        audioRef.current.src = message.audioUrl;
+        audioRef.current.src = message.audio_url;
         audioRef.current.play();
         setPlayingMessageId(message.id);
       }
@@ -398,8 +435,9 @@ export default function ChatPage() {
           <CardContent className="flex-grow p-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((msg) => {
-                const sender = CHAT_USERS.find(u => u.id === msg.senderId) || {name: "Utilisateur Inconnu", avatar: ""}; // Simulation: get user details
-                const isCurrentUser = msg.senderId === currentUser.uid;
+                // In a real app, you'd fetch sender details from a profiles table
+                const sender = CHAT_USERS.find(u => u.id === msg.sender_id) || {name: "Utilisateur Inconnu", avatar: ""}; 
+                const isCurrentUser = msg.sender_id === currentUser.id;
                 return (
                   <div
                     key={msg.id}
@@ -424,7 +462,7 @@ export default function ChatPage() {
                             : 'bg-muted'
                         )}
                         >
-                        {msg.audioUrl ? (
+                        {msg.audio_url ? (
                             <div className="flex items-center gap-2">
                             <Button size="icon" variant="ghost" className={cn("h-8 w-8 shrink-0", isCurrentUser && "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground")} onClick={() => handlePlayAudio(msg)}>
                                 {playingMessageId === msg.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -435,14 +473,14 @@ export default function ChatPage() {
                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                         )}
                         <p className={cn("text-xs opacity-70 mt-1 self-end", isCurrentUser ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                            {msg.timestamp ? formatDistanceToNow(new Timestamp(msg.timestamp.seconds, msg.timestamp.nanoseconds).toDate(), { addSuffix: true, locale: fr }) : 'envoi...'}
+                            {msg.timestamp ? formatDistanceToNow(new Date(msg.timestamp), { addSuffix: true, locale: fr }) : 'envoi...'}
                         </p>
                         </div>
                     </div>
                      {isCurrentUser && (
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={currentUser.photoURL || undefined} />
-                        <AvatarFallback>{currentUser.displayName?.charAt(0) || 'U'}</AvatarFallback>
+                        <AvatarImage src={currentUser.user_metadata.avatar_url || undefined} />
+                        <AvatarFallback>{currentUser.user_metadata.fullName?.charAt(0) || 'U'}</AvatarFallback>
                       </Avatar>
                     )}
                   </div>

@@ -28,13 +28,14 @@ export function SidebarNav() {
   const handleLogout = async () => {
     await logout();
     router.push('/');
+    router.refresh();
   };
 
-  const getInitials = (email: string | null | undefined) => {
-    if (!email) return "??";
-    const name = user?.displayName;
-    if (name) return name.split(' ').map(n => n[0]).join('');
-    return email.substring(0, 2).toUpperCase();
+  const getInitials = () => {
+    if (!user) return "??";
+    const name = user.user_metadata.fullName;
+    if (name) return name.split(' ').map((n:string) => n[0]).join('');
+    return user.email?.substring(0, 2).toUpperCase() || '??';
   };
 
   return (
@@ -76,11 +77,11 @@ export function SidebarNav() {
         <div className="flex items-center justify-between p-2">
           <Link href="/profile" className="flex items-center gap-2">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || "User"} />
-              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={user?.user_metadata.fullName || "User"} />
+              <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
             <div className="group-data-[collapsible=icon]:hidden">
-              <p className="font-semibold text-sm">{user?.displayName || user?.email}</p>
+              <p className="font-semibold text-sm">{user?.user_metadata.fullName || user?.email}</p>
               <p className="text-xs text-muted-foreground">Agriculteur</p>
             </div>
           </Link>
@@ -92,3 +93,5 @@ export function SidebarNav() {
     </>
   );
 }
+
+    

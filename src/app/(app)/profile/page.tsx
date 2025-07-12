@@ -12,10 +12,12 @@ import { Pencil } from "lucide-react";
 export default function ProfilePage() {
   const { user } = useAuth();
 
-  // Helper to get initials from email
-  const getInitials = (email: string | null | undefined) => {
-    if (!email) return "??";
-    return email.substring(0, 2).toUpperCase();
+  // Helper to get initials
+  const getInitials = () => {
+    if (!user) return "??";
+    const name = user.user_metadata.fullName;
+    if (name) return name.split(' ').map((n:string) => n[0]).join('');
+    return user.email?.substring(0, 2).toUpperCase() || "??";
   };
   
   return (
@@ -42,8 +44,8 @@ export default function ProfilePage() {
         <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
-                    <AvatarImage src={user?.photoURL || undefined} />
-                    <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
+                    <AvatarImage src={user?.user_metadata.avatar_url || undefined} />
+                    <AvatarFallback>{getInitials()}</AvatarFallback>
                 </Avatar>
                 <Button variant="outline">Changer de photo</Button>
             </div>
@@ -51,7 +53,7 @@ export default function ProfilePage() {
             <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="name">Nom complet</Label>
-                    <Input id="name" defaultValue={user?.displayName || "Moussa Faye"} />
+                    <Input id="name" defaultValue={user?.user_metadata.fullName || "Moussa Faye"} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
@@ -74,3 +76,5 @@ export default function ProfilePage() {
     </div>
   );
 }
+
+    

@@ -41,20 +41,22 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setLoading(true);
-    try {
-      await signup(data.email, data.password, data.fullName);
-      toast({
-        title: 'Compte créé avec succès !',
-        description: 'Vous allez être redirigé vers le tableau de bord.',
-      });
-      router.push('/dashboard');
-    } catch (error: any) {
+    const error = await signup(data.email, data.password, data.fullName);
+
+    if (error) {
        toast({
         variant: 'destructive',
         title: "Erreur lors de l'inscription",
         description: error.message || 'Une erreur est survenue. Veuillez réessayer.',
       });
       setLoading(false);
+    } else {
+      toast({
+        title: 'Compte créé avec succès !',
+        description: 'Veuillez vérifier votre email pour confirmer votre compte.',
+      });
+      router.push('/login');
+      // No automatic redirect, user must confirm email
     }
   };
 
@@ -126,3 +128,5 @@ export default function SignupPage() {
     </Card>
   );
 }
+
+    
