@@ -8,10 +8,23 @@ export type User = {
     online: boolean;
 };
 
+export type ChatUser = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+export type Conversation = {
+    id: string;
+    name: string;
+    members: string[]; // array of user UIDs
+    createdBy: string;
+    createdAt: Timestamp;
+};
+
 export type Message = {
     id: string;
     senderId: string;
-    receiverId: string;
     message: string;
     audioUrl?: string | null;
     timestamp: Timestamp;
