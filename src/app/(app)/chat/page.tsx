@@ -35,6 +35,7 @@ export default function ChatPage() {
   const [newMemberEmail, setNewMemberEmail] = useState('');
   const [newMembers, setNewMembers] = useState<ChatUser[]>([]);
   const [creatingConversation, setCreatingConversation] = useState(false);
+  const [findingUser, setFindingUser] = useState(false);
 
   // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -64,7 +65,7 @@ export default function ChatPage() {
         setNewMembers([self]);
       }
     }
-  }, [currentUser, isDialogOpen, newMembers]);
+  }, [currentUser, isDialogOpen]);
 
   // Fetch conversations the current user is part of
   const fetchConversations = useCallback(async () => {
@@ -213,12 +214,12 @@ export default function ChatPage() {
         if (membersError) throw membersError;
 
         toast({ title: 'Succès', description: 'Conversation créée avec succès.'});
-        setIsDialogOpen(false);
         setNewGroupName('');
         setNewMembers([]);
+        setNewMemberEmail('');
         await fetchConversations();
         
-        const newConvo = conversations.find(c => c.id === convoData.id) || {
+        const newConvo: Conversation = {
              id: convoData.id,
             name: convoData.name,
             members: newMembers.map(m => m.id),
@@ -226,6 +227,7 @@ export default function ChatPage() {
             created_at: convoData.created_at,
         };
         setSelectedConversation(newConvo);
+        setIsDialogOpen(false); // Close dialog on success
 
     } catch (error: any) {
         console.error("Erreur de création de conversation:", error);
@@ -237,29 +239,51 @@ export default function ChatPage() {
 
   const handleAddMember = async () => {
     if (newMemberEmail.trim() === '') return;
-    
-    // In a real app, this should be a secure RPC call to a Postgres function.
-    // For this prototype, we'll do a direct lookup, which isn't recommended for production
-    // as it might expose user emails if RLS isn't set up perfectly.
-    const { data, error } = await supabase
-      .from('profiles') // Assuming a 'profiles' table exists that is linked to auth.users
-      .select('id, full_name, email')
-      .eq('email', newMemberEmail.trim())
-      .single();
+    setFindingUser(true);
 
-    if (error || !data) {
-        toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Aucun utilisateur avec l'email ${newMemberEmail}`});
-        return;
-    }
-    
-    const userToAdd = { id: data.id, name: data.full_name || 'Utilisateur Inconnu', email: data.email };
-    if (!newMembers.some(m => m.id === userToAdd.id)) {
-        setNewMembers([...newMembers, userToAdd]);
-        setNewMemberEmail('');
-    } else {
-        toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
+    try {
+      // Supabase doesn't allow direct query on auth.users by email from client-side for security.
+      // A secure way is to create a Postgres function and call it via RPC.
+      // For this prototype, we'll use a less secure, but functional approach.
+      // IMPORTANT: This requires creating a policy on `auth.users` to allow authenticated users to read emails.
+      // This is NOT recommended for production without careful security review.
+      
+      const { data: userData, error: userError } = await supabase
+        .from('users') // This assumes you have a view or policy allowing this.
+        .select('id, email')
+        .eq('email', newMemberEmail.trim())
+        .single();
+      
+      if (userError || !userData) {
+        throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
+      }
+      
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', userData.id)
+        .single();
+
+      if (profileError) {
+        throw new Error("Impossible de trouver le profil de l'utilisateur.");
+      }
+      
+      const userToAdd = { id: userData.id, name: profileData.full_name || 'Utilisateur Inconnu', email: userData.email! };
+      
+      if (!newMembers.some(m => m.id === userToAdd.id)) {
+          setNewMembers([...newMembers, userToAdd]);
+          setNewMemberEmail('');
+      } else {
+          toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
+      }
+
+    } catch(error: any) {
+        toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: error.message });
+    } finally {
+        setFindingUser(false);
     }
   };
+
 
   const handleRemoveMember = (memberId: string) => {
     if (currentUser && memberId === currentUser.id) {
@@ -400,7 +424,10 @@ export default function ChatPage() {
                         <Input placeholder="Nom du groupe" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
                         <div className="flex gap-2">
                            <Input placeholder="Email du membre à ajouter" value={newMemberEmail} onChange={e => setNewMemberEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMember()} />
-                           <Button onClick={handleAddMember}>Ajouter</Button>
+                           <Button onClick={handleAddMember} disabled={findingUser}>
+                                {findingUser && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Ajouter
+                            </Button>
                         </div>
                         <div className="space-y-2">
                             <h4 className="text-sm font-medium">Membres</h4>
@@ -571,3 +598,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
