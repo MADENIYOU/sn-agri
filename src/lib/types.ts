@@ -1,3 +1,4 @@
+
 import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 
 export type User = typeof CHAT_USERS[0];

@@ -1,13 +1,15 @@
+
 "use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AppLogo } from "@/components/icons";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -20,6 +22,20 @@ import { LogOut } from "lucide-react";
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+  };
+
+  const getInitials = (email: string | null | undefined) => {
+    if (!email) return "??";
+    const name = user?.displayName;
+    if (name) return name.split(' ').map(n => n[0]).join('');
+    return email.substring(0, 2).toUpperCase();
+  };
 
   return (
     <>
@@ -60,18 +76,16 @@ export function SidebarNav() {
         <div className="flex items-center justify-between p-2">
           <Link href="/profile" className="flex items-center gap-2">
             <Avatar className="h-9 w-9">
-              <AvatarImage src="/avatars/01.png" alt="Moussa Faye" />
-              <AvatarFallback>MF</AvatarFallback>
+              <AvatarImage src={user?.photoURL || undefined} alt={user?.displayName || "User"} />
+              <AvatarFallback>{getInitials(user?.email)}</AvatarFallback>
             </Avatar>
             <div className="group-data-[collapsible=icon]:hidden">
-              <p className="font-semibold text-sm">Moussa Faye</p>
+              <p className="font-semibold text-sm">{user?.displayName || user?.email}</p>
               <p className="text-xs text-muted-foreground">Agriculteur</p>
             </div>
           </Link>
-          <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" asChild>
-            <Link href="/">
-              <LogOut className="w-4 h-4" />
-            </Link>
+          <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" onClick={handleLogout}>
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
       </SidebarGroup>

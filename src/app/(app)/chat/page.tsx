@@ -12,20 +12,20 @@ import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Message, User } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
 
-
-const currentUser = CHAT_USERS[0]; // Simulate the current logged-in user
 
 export default function ChatPage() {
+  const { user: currentUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>(CHAT_MESSAGES);
   const [newMessage, setNewMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState<User>(CHAT_USERS[1]);
-  
+
   const [isRecording, setIsRecording] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  
+
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -69,7 +69,7 @@ export default function ChatPage() {
       setIsRecording(false);
     }
   };
-  
+
   const handlePlayAudio = (message: Message) => {
     if (playingMessageId === message.id) {
       audioRef.current?.pause();
@@ -83,11 +83,11 @@ export default function ChatPage() {
         setPlayingMessageId(message.id);
     }
   };
-  
+
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    
+
     const handleAudioEnd = () => setPlayingMessageId(null);
     audio.addEventListener('ended', handleAudioEnd);
 
@@ -99,11 +99,11 @@ export default function ChatPage() {
 
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() === '' && !audioUrl) return;
+    if (!currentUser || (newMessage.trim() === '' && !audioUrl)) return;
 
     const message: Message = {
       id: `msg${Date.now()}`,
-      userId: currentUser.id,
+      userId: currentUser.uid,
       message: newMessage,
       audioUrl: audioUrl,
       timestamp: new Date(),
@@ -125,11 +125,19 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, reply]);
     }, 1500);
   };
+
+  if (!currentUser) {
+     return (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
   
   const conversationMessages = messages.filter(
     (msg) =>
-      (msg.userId === currentUser.id && selectedUser.id) ||
-      (msg.userId === selectedUser.id && currentUser.id)
+      (msg.userId === currentUser.uid && selectedUser.id) ||
+      (msg.userId === selectedUser.id && currentUser.uid)
   );
 
   return (
@@ -141,7 +149,7 @@ export default function ChatPage() {
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto">
           <div className="flex flex-col gap-2">
-            {CHAT_USERS.filter(u => u.id !== currentUser.id).map((user) => (
+            {CHAT_USERS.filter(u => u.id !== currentUser.uid).map((user) => (
               <Button
                 key={user.id}
                 variant={selectedUser.id === user.id ? 'secondary' : 'ghost'}
@@ -181,8 +189,8 @@ export default function ChatPage() {
         <CardContent className="flex-grow p-4 overflow-y-auto">
           <div className="space-y-4">
             {conversationMessages.map((msg) => {
-              const user = CHAT_USERS.find((u) => u.id === msg.userId)!;
-              const isCurrentUser = user.id === currentUser.id;
+              const user = CHAT_USERS.find((u) => u.id === msg.userId);
+              const isCurrentUser = user?.id === currentUser.uid;
               return (
                 <div
                   key={msg.id}
@@ -191,7 +199,7 @@ export default function ChatPage() {
                     isCurrentUser ? 'justify-end' : 'justify-start'
                   )}
                 >
-                  {!isCurrentUser && (
+                  {!isCurrentUser && user && (
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
@@ -221,7 +229,7 @@ export default function ChatPage() {
                       </p>
                     </div>
                   </div>
-                   {isCurrentUser && (
+                   {isCurrentUser && user && (
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user.avatar} />
                       <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
