@@ -240,33 +240,35 @@ export default function ChatPage() {
   const handleAddMember = async () => {
     if (newMemberEmail.trim() === '') return;
     setFindingUser(true);
-
+  
     try {
-      // NOTE: This RPC call requires a function in your Supabase SQL editor:
-      //
-      // CREATE OR REPLACE FUNCTION get_user_by_email(email_param text)
-      // RETURNS TABLE (id uuid, email text, full_name text) AS $$
-      // BEGIN
-      //   RETURN QUERY
-      //   SELECT u.id, u.email, p.full_name
-      //   FROM auth.users u
-      //   LEFT JOIN public.profiles p ON u.id = p.id
-      //   WHERE u.email = email_param;
-      // END;
-      // $$ LANGUAGE plpgsql SECURITY DEFINER;
-      //
-      // You must run this SQL in your Supabase project.
-
-      const { data, error } = await supabase.rpc('get_user_by_email', {
-        email_param: newMemberEmail.trim()
-      });
-      
-      if (error || !data || data.length === 0) {
+      // Step 1: Find user in auth.users by email
+      const { data: users, error: userError } = await supabase
+        .from('users')
+        .select('id, email')
+        .in('email', [newMemberEmail.trim()])
+        
+      if (userError) throw userError;
+      if (!users || users.length === 0) {
         throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
       }
       
-      const userData = data[0];
-      const userToAdd = { id: userData.id, name: userData.full_name || 'Utilisateur Inconnu', email: userData.email! };
+      const foundUser = users[0];
+  
+      // Step 2: Find profile using the user id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', foundUser.id)
+        .single();
+  
+      if (profileError) {
+          // This case might happen if a user exists in auth but not profiles.
+          // Handle as a "not found" case for simplicity.
+          throw new Error(`Profil non trouvé pour l'utilisateur avec l'email ${newMemberEmail}`);
+      }
+  
+      const userToAdd = { id: foundUser.id, name: profile.full_name || 'Utilisateur Inconnu', email: foundUser.email! };
       
       if (!newMembers.some(m => m.id === userToAdd.id)) {
           setNewMembers([...newMembers, userToAdd]);
@@ -274,14 +276,13 @@ export default function ChatPage() {
       } else {
           toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
       }
-
+  
     } catch(error: any) {
         toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: error.message });
     } finally {
         setFindingUser(false);
     }
   };
-
 
   const handleRemoveMember = (memberId: string) => {
     if (currentUser && memberId === currentUser.id) {
@@ -596,3 +597,5 @@ export default function ChatPage() {
     </div>
   );
 }
+
+    
