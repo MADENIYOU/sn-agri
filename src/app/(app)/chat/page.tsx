@@ -41,6 +41,7 @@ export default function ChatPage() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Audio playback state
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export default function ChatPage() {
         setNewMembers([self]);
       }
     }
-  }, [currentUser, isDialogOpen]);
+  }, [currentUser, isDialogOpen, newMembers]);
 
   // Fetch conversations the current user is part of
   useEffect(() => {
@@ -80,7 +81,12 @@ export default function ChatPage() {
       });
       setConversations(convos);
       if (convos.length > 0 && !selectedConversation) {
-        setSelectedConversation(convos[0]);
+        // Automatically select the first conversation if none is selected
+        // setSelectedConversation(convos[0]);
+      } else if (selectedConversation) {
+        // refresh selected conversation data
+        const updatedSelected = convos.find(c => c.id === selectedConversation.id);
+        setSelectedConversation(updatedSelected || null);
       }
       setLoadingConversations(false);
     }, (error) => {
@@ -131,7 +137,7 @@ export default function ChatPage() {
     setCreatingConversation(true);
     try {
         const memberIds = newMembers.map(m => m.id);
-        await addDoc(collection(firestore, 'conversations'), {
+        const docRef = await addDoc(collection(firestore, 'conversations'), {
             name: newGroupName,
             members: memberIds,
             createdBy: currentUser.uid,
@@ -141,6 +147,7 @@ export default function ChatPage() {
         setIsDialogOpen(false);
         setNewGroupName('');
         setNewMembers([]);
+        setSelectedConversation({ id: docRef.id, name: newGroupName, members: memberIds, createdBy: currentUser.uid, createdAt: Timestamp.now() });
     } catch (error) {
         console.error("Erreur de création de conversation:", error);
         toast({ variant: 'destructive', title: 'Erreur', description: "La conversation n'a pas pu être créée." });
@@ -149,22 +156,45 @@ export default function ChatPage() {
     }
   };
 
-  const handleAddMember = () => {
+  const handleAddMember = async () => {
     if (newMemberEmail.trim() === '') return;
     
-    // SIMULATION: In a real app, you would query your users collection via a Cloud Function
-    // For now, we'll find a user from our mock data.
-    const userToAdd = CHAT_USERS.find(u => u.name.toLowerCase().includes(newMemberEmail.toLowerCase().split('@')[0]));
+    // In a real app, this would be a secure Cloud Function call.
+    // Here we query firestore directly which is not secure for production.
+    try {
+        const usersRef = collection(firestore, 'users'); // Assuming you have a 'users' collection
+        const q = query(usersRef, where("email", "==", newMemberEmail.trim()));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Aucun utilisateur avec l'email ${newMemberEmail}`});
+            return;
+        }
 
-    if (userToAdd) {
+        const userDoc = querySnapshot.docs[0];
+        const userToAdd = { id: userDoc.id, name: userDoc.data().displayName, email: userDoc.data().email };
+
         if (!newMembers.some(m => m.id === userToAdd.id)) {
-            setNewMembers([...newMembers, { id: userToAdd.id, name: userToAdd.name, email: `${userToAdd.name.split(' ')[0].toLowerCase()}@example.com` }]);
+            setNewMembers([...newMembers, userToAdd]);
             setNewMemberEmail('');
         } else {
             toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
         }
-    } else {
-        toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: "Impossible de trouver un utilisateur avec cet email."});
+    } catch (e) {
+        // Fallback to simulation if 'users' collection doesn't exist or query fails
+        console.warn("Firestore 'users' collection not found or query failed. Falling back to simulated user search.", e)
+        const userToAdd = CHAT_USERS.find(u => u.name.toLowerCase().includes(newMemberEmail.toLowerCase().split('@')[0]));
+
+        if (userToAdd) {
+             if (!newMembers.some(m => m.id === userToAdd.id)) {
+                setNewMembers([...newMembers, { id: userToAdd.id, name: userToAdd.name, email: `${userToAdd.name.split(' ')[0].toLowerCase()}@example.com` }]);
+                setNewMemberEmail('');
+            } else {
+                toast({ variant: 'destructive', description: "Cet utilisateur est déjà dans la liste."});
+            }
+        } else {
+            toast({ variant: 'destructive', title: 'Utilisateur non trouvé', description: `Impossible de trouver un utilisateur avec l'email ${newMemberEmail}`});
+        }
     }
   };
 
@@ -210,13 +240,65 @@ export default function ChatPage() {
     }
   };
 
-  // Audio handling functions
-  const startRecording = async () => { /* ... implementation from before ... */ };
-  const stopRecording = () => { /* ... implementation from before ... */ };
-  const handlePlayAudio = (message: Message) => { /* ... implementation from before ... */ };
-  useEffect(() => { /* ... audio ref effect from before ... */ }, []);
+  const startRecording = async () => {
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        audioChunksRef.current = [];
+        
+        mediaRecorderRef.current.ondataavailable = (event) => {
+          audioChunksRef.current.push(event.data);
+        };
+        
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          setAudioBlob(audioBlob);
+          // Stop all tracks to release the microphone
+          stream.getTracks().forEach(track => track.stop());
+        };
+        
+        mediaRecorderRef.current.start();
+        setIsRecording(true);
+      } catch (err) {
+        console.error("Erreur d'accès au microphone:", err);
+        toast({ variant: 'destructive', title: 'Erreur de Microphone', description: "Impossible d'accéder au microphone. Veuillez vérifier les permissions."});
+      }
+    }
+  };
 
-  if (!currentUser || loadingConversations) {
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+  
+  const handlePlayAudio = (message: Message) => {
+    if (audioRef.current && message.audioUrl) {
+      if (playingMessageId === message.id) {
+        audioRef.current.pause();
+        setPlayingMessageId(null);
+      } else {
+        audioRef.current.src = message.audioUrl;
+        audioRef.current.play();
+        setPlayingMessageId(message.id);
+      }
+    }
+  };
+  
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      const onEnded = () => setPlayingMessageId(null);
+      audio.addEventListener('ended', onEnded);
+      return () => {
+        audio.removeEventListener('ended', onEnded);
+      };
+    }
+  }, []);
+
+  if (!currentUser) {
      return (
       <div className="flex h-full w-full items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -243,7 +325,7 @@ export default function ChatPage() {
                     <div className="space-y-4">
                         <Input placeholder="Nom du groupe" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
                         <div className="flex gap-2">
-                           <Input placeholder="Email du membre" value={newMemberEmail} onChange={e => setNewMemberEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMember()} />
+                           <Input placeholder="Email du membre à ajouter" value={newMemberEmail} onChange={e => setNewMemberEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAddMember()} />
                            <Button onClick={handleAddMember}>Ajouter</Button>
                         </div>
                         <div className="space-y-2">
@@ -271,7 +353,11 @@ export default function ChatPage() {
             </Dialog>
         </CardHeader>
         <CardContent className="flex-grow overflow-y-auto p-2">
-            {conversations.length > 0 ? (
+             {loadingConversations ? (
+                <div className="flex justify-center items-center h-full">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                </div>
+            ) : conversations.length > 0 ? (
                 <div className="flex flex-col gap-1">
                     {conversations.map((convo) => (
                     <Button
@@ -328,11 +414,11 @@ export default function ChatPage() {
                         <AvatarFallback>{sender.name.charAt(0)}</AvatarFallback>
                       </Avatar>
                     )}
-                     <div className="flex flex-col items-start gap-1">
+                     <div className="flex flex-col gap-1.5">
                         {!isCurrentUser && <p className="text-xs text-muted-foreground ml-3">{sender.name}</p>}
                         <div
                         className={cn(
-                            'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2',
+                            'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2 flex flex-col',
                             isCurrentUser
                             ? 'bg-primary text-primary-foreground'
                             : 'bg-muted'
@@ -340,7 +426,7 @@ export default function ChatPage() {
                         >
                         {msg.audioUrl ? (
                             <div className="flex items-center gap-2">
-                            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handlePlayAudio(msg)}>
+                            <Button size="icon" variant="ghost" className={cn("h-8 w-8 shrink-0", isCurrentUser && "bg-primary-foreground/20 hover:bg-primary-foreground/30 text-primary-foreground")} onClick={() => handlePlayAudio(msg)}>
                                 {playingMessageId === msg.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                             </Button>
                             <div className="w-40 h-1 bg-muted-foreground/30 rounded-full" />
@@ -348,7 +434,7 @@ export default function ChatPage() {
                         ) : (
                             <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                         )}
-                        <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
+                        <p className={cn("text-xs opacity-70 mt-1 self-end", isCurrentUser ? "text-primary-foreground/80" : "text-muted-foreground")}>
                             {msg.timestamp ? formatDistanceToNow(new Timestamp(msg.timestamp.seconds, msg.timestamp.nanoseconds).toDate(), { addSuffix: true, locale: fr }) : 'envoi...'}
                         </p>
                         </div>
@@ -392,7 +478,7 @@ export default function ChatPage() {
                   <span className="sr-only">Commencer l'enregistrement</span>
                 </Button>
               )}
-              <Button type="submit" size="icon" disabled={isRecording || loading}>
+              <Button type="submit" size="icon" disabled={isRecording || loading || (!newMessage.trim() && !audioBlob)}>
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 <span className="sr-only">Envoyer</span>
               </Button>
@@ -401,13 +487,15 @@ export default function ChatPage() {
         </Card>
       ) : (
          <Card className="flex-1 flex flex-col items-center justify-center bg-muted/50">
-            <div className="text-center">
+            <div className="text-center p-6">
                 <Users className="h-16 w-16 text-muted-foreground mx-auto" />
                 <h2 className="mt-4 text-xl font-semibold">Bienvenue sur le chat</h2>
-                <p className="text-muted-foreground mt-2">Sélectionnez une conversation ou créez-en une nouvelle pour commencer.</p>
+                <p className="text-muted-foreground mt-2 max-w-sm">Sélectionnez une conversation dans la liste de gauche ou créez-en une nouvelle pour commencer à discuter avec d'autres agriculteurs.</p>
             </div>
         </Card>
       )}
     </div>
   );
 }
+
+    
