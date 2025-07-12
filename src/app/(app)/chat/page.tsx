@@ -15,7 +15,6 @@ import type { Message, Conversation, ChatUser } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { CHAT_USERS } from '@/lib/constants'; // For simulation
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export default function ChatPage() {
@@ -72,13 +71,33 @@ export default function ChatPage() {
     if (!currentUser) return;
     setLoadingConversations(true);
 
+    const { data: memberConvos, error: memberError } = await supabase
+      .from('conversation_members')
+      .select('conversation_id')
+      .eq('user_id', currentUser.id);
+
+    if (memberError) {
+      console.error("Erreur de récupération des conversations:", memberError);
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les conversations." });
+      setLoadingConversations(false);
+      return;
+    }
+
+    if (!memberConvos || memberConvos.length === 0) {
+      setConversations([]);
+      setLoadingConversations(false);
+      return;
+    }
+
+    const conversationIds = memberConvos.map(d => d.conversation_id);
+
     const { data, error } = await supabase
       .from('conversations')
       .select(`
         *,
         members:conversation_members ( user_id )
       `)
-      .in('id', (await supabase.from('conversation_members').select('conversation_id').eq('user_id', currentUser.id)).data?.map(d => d.conversation_id) || []);
+      .in('id', conversationIds);
 
     if (error) {
       console.error("Erreur de récupération des conversations:", error);
@@ -99,7 +118,8 @@ export default function ChatPage() {
       }
     }
     setLoadingConversations(false);
-  }, [currentUser, supabase, selectedConversation]);
+  }, [currentUser, supabase, toast, selectedConversation?.id]);
+
 
   useEffect(() => {
     fetchConversations();
@@ -115,7 +135,7 @@ export default function ChatPage() {
     const fetchMessages = async () => {
         const { data, error } = await supabase
             .from('messages')
-            .select('*')
+            .select('*, sender:profiles(full_name, avatar_url)')
             .eq('conversation_id', selectedConversation.id)
             .order('timestamp', { ascending: true });
         
@@ -139,8 +159,23 @@ export default function ChatPage() {
     }
     
     const channel = supabase.channel(`messages:${selectedConversation.id}`)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` }, payload => {
-        setMessages(currentMessages => [...currentMessages, payload.new as Message]);
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `conversation_id=eq.${selectedConversation.id}` }, async (payload) => {
+        const newMessage = payload.new as Message;
+        
+        // Fetch sender profile since it's not in the payload
+        const { data: senderData, error: senderError } = await supabase
+          .from('profiles')
+          .select('full_name, avatar_url')
+          .eq('id', newMessage.sender_id)
+          .single();
+
+        if (senderError) {
+          console.error("Error fetching sender for new message", senderError);
+        } else {
+           newMessage.sender = senderData;
+        }
+
+        setMessages(currentMessages => [...currentMessages, newMessage]);
       })
       .subscribe();
 
@@ -181,15 +216,17 @@ export default function ChatPage() {
         setIsDialogOpen(false);
         setNewGroupName('');
         setNewMembers([]);
-        const newConvo: Conversation = {
-            id: convoData.id,
+        await fetchConversations();
+        
+        const newConvo = conversations.find(c => c.id === convoData.id) || {
+             id: convoData.id,
             name: convoData.name,
             members: newMembers.map(m => m.id),
             created_by: convoData.created_by,
             created_at: convoData.created_at,
         };
-        setConversations(prev => [...prev, newConvo]);
         setSelectedConversation(newConvo);
+
     } catch (error: any) {
         console.error("Erreur de création de conversation:", error);
         toast({ variant: 'destructive', title: 'Erreur', description: error.message || "La conversation n'a pas pu être créée." });
@@ -225,7 +262,7 @@ export default function ChatPage() {
   };
 
   const handleRemoveMember = (memberId: string) => {
-    if (memberId === currentUser?.id) {
+    if (currentUser && memberId === currentUser.id) {
         toast({ variant: "destructive", description: "Vous ne pouvez pas vous retirer vous-même." });
         return;
     }
@@ -242,7 +279,7 @@ export default function ChatPage() {
     try {
         let audioUrl: string | null = null;
         if (audioBlob) {
-            const filePath = `chat_audio/${selectedConversation.id}/${Date.now()}.webm`;
+            const filePath = `public/chat_audio/${selectedConversation.id}/${Date.now()}.webm`;
             const { error: uploadError } = await supabase.storage
                 .from('chat_audio')
                 .upload(filePath, audioBlob);
@@ -435,8 +472,7 @@ export default function ChatPage() {
           <CardContent className="flex-grow p-4 overflow-y-auto">
             <div className="space-y-4">
               {messages.map((msg) => {
-                // In a real app, you'd fetch sender details from a profiles table
-                const sender = CHAT_USERS.find(u => u.id === msg.sender_id) || {name: "Utilisateur Inconnu", avatar: ""}; 
+                const sender = msg.sender || {full_name: "Utilisateur Inconnu", avatar_url: ""}; 
                 const isCurrentUser = msg.sender_id === currentUser.id;
                 return (
                   <div
@@ -448,12 +484,12 @@ export default function ChatPage() {
                   >
                     {!isCurrentUser && (
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={sender.avatar} />
-                        <AvatarFallback>{sender.name.charAt(0)}</AvatarFallback>
+                        <AvatarImage src={sender.avatar_url || undefined} />
+                        <AvatarFallback>{sender.full_name?.charAt(0) || 'U'}</AvatarFallback>
                       </Avatar>
                     )}
                      <div className="flex flex-col gap-1.5">
-                        {!isCurrentUser && <p className="text-xs text-muted-foreground ml-3">{sender.name}</p>}
+                        {!isCurrentUser && <p className="text-xs text-muted-foreground ml-3">{sender.full_name}</p>}
                         <div
                         className={cn(
                             'max-w-xs md:max-w-md lg:max-w-lg rounded-lg px-3 py-2 flex flex-col',
@@ -535,5 +571,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    

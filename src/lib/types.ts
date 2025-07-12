@@ -27,6 +27,8 @@ export type Message = {
     message: string;
     audio_url?: string | null;
     timestamp: string; // ISO 8601 timestamp string
+    sender?: { // This is joined from the 'profiles' table
+        full_name: string;
+        avatar_url: string;
+    } | null;
 };
-
-    
