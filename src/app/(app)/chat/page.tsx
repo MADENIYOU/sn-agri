@@ -242,33 +242,21 @@ export default function ChatPage() {
     setFindingUser(true);
   
     try {
-      // Step 1: Find user in auth.users by email
-      const { data: users, error: userError } = await supabase
-        .from('users')
-        .select('id, email')
-        .in('email', [newMemberEmail.trim()])
-        
-      if (userError) throw userError;
-      if (!users || users.length === 0) {
-        throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
-      }
-      
-      const foundUser = users[0];
-  
-      // Step 2: Find profile using the user id
-      const { data: profile, error: profileError } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
-        .select('full_name')
-        .eq('id', foundUser.id)
+        .select('id, full_name, email')
+        .eq('email', newMemberEmail.trim())
         .single();
   
-      if (profileError) {
-          // This case might happen if a user exists in auth but not profiles.
-          // Handle as a "not found" case for simplicity.
-          throw new Error(`Profil non trouvé pour l'utilisateur avec l'email ${newMemberEmail}`);
+      if (error || !data) {
+        throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
       }
   
-      const userToAdd = { id: foundUser.id, name: profile.full_name || 'Utilisateur Inconnu', email: foundUser.email! };
+      const userToAdd: ChatUser = {
+        id: data.id,
+        name: data.full_name || 'Utilisateur Inconnu',
+        email: data.email || newMemberEmail.trim(),
+      };
       
       if (!newMembers.some(m => m.id === userToAdd.id)) {
           setNewMembers([...newMembers, userToAdd]);
@@ -597,5 +585,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
