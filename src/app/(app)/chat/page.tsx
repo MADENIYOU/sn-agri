@@ -1,30 +1,34 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Send, Loader2, Mic, StopCircle, Trash2, Play } from 'lucide-react';
+import { Send, Loader2, Mic, StopCircle, Trash2, Play, Pause } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
+import { CHAT_USERS } from '@/lib/constants';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Message, User } from '@/lib/types';
 import { useAuth } from '@/hooks/use-auth';
-
+import { firestore, storage } from '@/lib/firebase';
+import { collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { useToast } from '@/hooks/use-toast';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(CHAT_MESSAGES);
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState<User>(CHAT_USERS[1]);
+  const [loading, setLoading] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
 
   const [playingMessageId, setPlayingMessageId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -38,28 +42,61 @@ export default function ChatPage() {
     scrollToBottom();
   }, [messages]);
 
+  const getChatId = useCallback((uid1: string, uid2: string) => {
+    return [uid1, uid2].sort().join('_');
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser || !selectedUser) return;
+
+    const chatId = getChatId(currentUser.uid, selectedUser.id);
+    const messagesRef = collection(firestore, 'chats', chatId, 'messages');
+    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      const msgs: Message[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        msgs.push({
+          id: doc.id,
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          message: data.message,
+          audioUrl: data.audioUrl,
+          timestamp: data.timestamp,
+        });
+      });
+      setMessages(msgs);
+    }, (error) => {
+      console.error("Erreur de récupération des messages:", error);
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de charger les messages." });
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, selectedUser, getChatId, toast]);
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
-      audioChunksRef.current = [];
+      mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const audioChunks: Blob[] = [];
 
       mediaRecorderRef.current.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        audioChunks.push(event.data);
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setAudioUrl(audioUrl);
-        stream.getTracks().forEach(track => track.stop()); // Stop the microphone stream
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        setAudioBlob(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
       };
 
       mediaRecorderRef.current.start();
       setIsRecording(true);
+      setAudioBlob(null);
     } catch (error) {
       console.error("Erreur d'accès au microphone:", error);
-      // You might want to show a toast notification to the user here
+      toast({ variant: 'destructive', title: 'Erreur Microphone', description: "Veuillez autoriser l'accès au microphone." });
     }
   };
 
@@ -69,7 +106,7 @@ export default function ChatPage() {
       setIsRecording(false);
     }
   };
-
+  
   const handlePlayAudio = (message: Message) => {
     if (playingMessageId === message.id) {
       audioRef.current?.pause();
@@ -79,7 +116,7 @@ export default function ChatPage() {
 
     if (message.audioUrl && audioRef.current) {
         audioRef.current.src = message.audioUrl;
-        audioRef.current.play();
+        audioRef.current.play().catch(e => console.error("Erreur de lecture audio:", e));
         setPlayingMessageId(message.id);
     }
   };
@@ -96,34 +133,39 @@ export default function ChatPage() {
     }
   }, []);
 
-
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUser || (newMessage.trim() === '' && !audioUrl)) return;
+    if (!currentUser || (newMessage.trim() === '' && !audioBlob)) return;
+    
+    setLoading(true);
+    const chatId = getChatId(currentUser.uid, selectedUser.id);
+    const messagesRef = collection(firestore, 'chats', chatId, 'messages');
 
-    const message: Message = {
-      id: `msg${Date.now()}`,
-      userId: currentUser.uid,
-      message: newMessage,
-      audioUrl: audioUrl,
-      timestamp: new Date(),
-    };
+    try {
+        let audioUrl: string | null = null;
+        if (audioBlob) {
+            const audioRef = ref(storage, `chat_audio/${chatId}/${Date.now()}.webm`);
+            const snapshot = await uploadBytes(audioRef, audioBlob);
+            audioUrl = await getDownloadURL(snapshot.ref);
+        }
 
-    setMessages([...messages, message]);
-    setNewMessage('');
-    setAudioUrl(null);
+        await addDoc(messagesRef, {
+            senderId: currentUser.uid,
+            receiverId: selectedUser.id,
+            message: newMessage,
+            audioUrl: audioUrl,
+            timestamp: serverTimestamp(),
+        });
 
-    // Simulate a reply from the other user
-    setTimeout(() => {
-      const reply: Message = {
-        id: `msg${Date.now() + 1}`,
-        userId: selectedUser.id,
-        message: 'Ceci est une réponse automatique !',
-        audioUrl: null,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, reply]);
-    }, 1500);
+        setNewMessage('');
+        setAudioBlob(null);
+
+    } catch (error) {
+        console.error("Erreur d'envoi de message:", error);
+        toast({ variant: 'destructive', title: 'Erreur', description: "Le message n'a pas pu être envoyé." });
+    } finally {
+        setLoading(false);
+    }
   };
 
   if (!currentUser) {
@@ -134,12 +176,6 @@ export default function ChatPage() {
     );
   }
   
-  const conversationMessages = messages.filter(
-    (msg) =>
-      (msg.userId === currentUser.uid && selectedUser.id) ||
-      (msg.userId === selectedUser.id && currentUser.uid)
-  );
-
   return (
     <div className="h-[calc(100vh-8rem)] flex gap-4">
       <audio ref={audioRef} />
@@ -188,9 +224,9 @@ export default function ChatPage() {
         </CardHeader>
         <CardContent className="flex-grow p-4 overflow-y-auto">
           <div className="space-y-4">
-            {conversationMessages.map((msg) => {
-              const user = CHAT_USERS.find((u) => u.id === msg.userId);
-              const isCurrentUser = user?.id === currentUser.uid;
+            {messages.map((msg) => {
+              const user = CHAT_USERS.find((u) => u.id === msg.senderId);
+              const isCurrentUser = msg.senderId === currentUser.uid;
               return (
                 <div
                   key={msg.id}
@@ -217,22 +253,22 @@ export default function ChatPage() {
                       {msg.audioUrl ? (
                         <div className="flex items-center gap-2">
                            <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => handlePlayAudio(msg)}>
-                                <Play className={cn("h-4 w-4", playingMessageId === msg.id && "text-primary")} />
+                                {playingMessageId === msg.id ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                            </Button>
-                           <div className="w-40 h-1 bg-muted/50 rounded-full" />
+                           <div className="w-40 h-1 bg-muted-foreground/30 rounded-full" />
                         </div>
                       ) : (
-                         <p className="text-sm">{msg.message}</p>
+                         <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                       )}
                        <p className={cn("text-xs opacity-70 mt-1", isCurrentUser ? "text-right" : "text-left")}>
-                        {formatDistanceToNow(msg.timestamp, { addSuffix: true, locale: fr })}
+                        {msg.timestamp ? formatDistanceToNow(new Timestamp(msg.timestamp.seconds, msg.timestamp.nanoseconds).toDate(), { addSuffix: true, locale: fr }) : 'envoi...'}
                       </p>
                     </div>
                   </div>
-                   {isCurrentUser && user && (
+                   {isCurrentUser && (
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={user.avatar} />
-                      <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                      <AvatarImage src={currentUser.photoURL || undefined} />
+                      <AvatarFallback>{currentUser.displayName?.charAt(0) || 'U'}</AvatarFallback>
                     </Avatar>
                   )}
                 </div>
@@ -242,10 +278,10 @@ export default function ChatPage() {
           </div>
         </CardContent>
         <div className="p-4 border-t">
-          {audioUrl && !isRecording && (
+          {audioBlob && !isRecording && (
              <div className="flex items-center gap-2 p-2 rounded-lg bg-muted mb-2">
-                <audio src={audioUrl} controls className="flex-1" />
-                <Button size="icon" variant="ghost" onClick={() => setAudioUrl(null)}>
+                <audio src={URL.createObjectURL(audioBlob)} controls className="flex-1" />
+                <Button size="icon" variant="ghost" onClick={() => setAudioBlob(null)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
              </div>
@@ -255,7 +291,7 @@ export default function ChatPage() {
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Écrivez votre message..."
-              disabled={isRecording || !!audioUrl}
+              disabled={isRecording || !!audioBlob || loading}
             />
             {isRecording ? (
                <Button type="button" size="icon" onClick={stopRecording} variant="destructive">
@@ -263,13 +299,13 @@ export default function ChatPage() {
                 <span className="sr-only">Arrêter l'enregistrement</span>
               </Button>
             ) : (
-              <Button type="button" size="icon" onClick={startRecording}>
+              <Button type="button" size="icon" onClick={startRecording} disabled={loading || !!newMessage}>
                 <Mic className="h-4 w-4" />
                 <span className="sr-only">Commencer l'enregistrement</span>
               </Button>
             )}
-            <Button type="submit" size="icon" disabled={isRecording}>
-              <Send className="h-4 w-4" />
+            <Button type="submit" size="icon" disabled={isRecording || loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               <span className="sr-only">Envoyer</span>
             </Button>
           </form>

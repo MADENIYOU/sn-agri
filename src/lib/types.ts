@@ -1,5 +1,18 @@
 
-import { CHAT_USERS, CHAT_MESSAGES } from '@/lib/constants';
+import type { Timestamp } from 'firebase/firestore';
 
-export type User = typeof CHAT_USERS[0];
-export type Message = (typeof CHAT_MESSAGES)[0] & { audioUrl?: string | null };
+export type User = {
+    id: string;
+    name: string;
+    avatar: string;
+    online: boolean;
+};
+
+export type Message = {
+    id: string;
+    senderId: string;
+    receiverId: string;
+    message: string;
+    audioUrl?: string | null;
+    timestamp: Timestamp;
+};
