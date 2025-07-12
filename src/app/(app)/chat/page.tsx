@@ -242,33 +242,31 @@ export default function ChatPage() {
     setFindingUser(true);
 
     try {
-      // Supabase doesn't allow direct query on auth.users by email from client-side for security.
-      // A secure way is to create a Postgres function and call it via RPC.
-      // For this prototype, we'll use a less secure, but functional approach.
-      // IMPORTANT: This requires creating a policy on `auth.users` to allow authenticated users to read emails.
-      // This is NOT recommended for production without careful security review.
+      // NOTE: This RPC call requires a function in your Supabase SQL editor:
+      //
+      // CREATE OR REPLACE FUNCTION get_user_by_email(email_param text)
+      // RETURNS TABLE (id uuid, email text, full_name text) AS $$
+      // BEGIN
+      //   RETURN QUERY
+      //   SELECT u.id, u.email, p.full_name
+      //   FROM auth.users u
+      //   LEFT JOIN public.profiles p ON u.id = p.id
+      //   WHERE u.email = email_param;
+      // END;
+      // $$ LANGUAGE plpgsql SECURITY DEFINER;
+      //
+      // You must run this SQL in your Supabase project.
+
+      const { data, error } = await supabase.rpc('get_user_by_email', {
+        email_param: newMemberEmail.trim()
+      });
       
-      const { data: userData, error: userError } = await supabase
-        .from('users') // This assumes you have a view or policy allowing this.
-        .select('id, email')
-        .eq('email', newMemberEmail.trim())
-        .single();
-      
-      if (userError || !userData) {
+      if (error || !data || data.length === 0) {
         throw new Error(`Aucun utilisateur avec l'email ${newMemberEmail}`);
       }
       
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', userData.id)
-        .single();
-
-      if (profileError) {
-        throw new Error("Impossible de trouver le profil de l'utilisateur.");
-      }
-      
-      const userToAdd = { id: userData.id, name: profileData.full_name || 'Utilisateur Inconnu', email: userData.email! };
+      const userData = data[0];
+      const userToAdd = { id: userData.id, name: userData.full_name || 'Utilisateur Inconnu', email: userData.email! };
       
       if (!newMembers.some(m => m.id === userToAdd.id)) {
           setNewMembers([...newMembers, userToAdd]);
@@ -303,7 +301,7 @@ export default function ChatPage() {
     try {
         let audioUrl: string | null = null;
         if (audioBlob) {
-            const filePath = `public/chat_audio/${selectedConversation.id}/${Date.now()}.webm`;
+            const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.webm`;
             const { error: uploadError } = await supabase.storage
                 .from('chat_audio')
                 .upload(filePath, audioBlob);
@@ -598,5 +596,3 @@ export default function ChatPage() {
     </div>
   );
 }
-
-    
