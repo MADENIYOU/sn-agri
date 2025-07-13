@@ -32,7 +32,7 @@ export default function Header() {
 
   const getInitials = () => {
     if (!user) return "??";
-    const name = user.user_metadata.fullName;
+    const name = user.user_metadata.fullName || user.user_metadata.full_name;
     if (name) return name.split(' ').map((n: string) => n[0]).join('');
     return user.email?.substring(0, 2).toUpperCase() || "??";
   };
@@ -51,7 +51,7 @@ export default function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="secondary" size="icon" className="rounded-full">
             <Avatar>
-              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={user?.user_metadata.fullName || "User"} />
+              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={user?.user_metadata.fullName || user?.user_metadata.full_name || "User"} />
               <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
             <span className="sr-only">Ouvrir le menu utilisateur</span>
@@ -73,5 +73,3 @@ export default function Header() {
     </header>
   );
 }
-
-    

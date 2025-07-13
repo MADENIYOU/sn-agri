@@ -172,7 +172,8 @@ export default function ChatPage() {
         async (payload) => {
           const newMessage = payload.new as Message;
   
-          if (newMessage.sender_id === currentUser.id) {
+          // Avoid duplicating messages if the sender is the current user
+          if (newMessage.sender_id === currentUser.id && messages.some(m => m.id === newMessage.id)) {
             return;
           }
   
@@ -189,7 +190,13 @@ export default function ChatPage() {
             newMessage.sender = senderData;
           }
   
-          setMessages((currentMessages) => [...currentMessages, newMessage]);
+          setMessages((currentMessages) => {
+            // Add message only if it's not already in the state
+            if (currentMessages.find(m => m.id === newMessage.id)) {
+                return currentMessages;
+            }
+            return [...currentMessages, newMessage]
+          });
         }
       )
       .subscribe();
@@ -202,7 +209,7 @@ export default function ChatPage() {
         channelRef.current = null;
       }
     };
-  }, [selectedConversation, supabase, currentUser]);
+  }, [selectedConversation, supabase, currentUser, messages]);
 
 
   const handleCreateConversation = async () => {
@@ -294,13 +301,13 @@ export default function ChatPage() {
       if (audioBlob) {
         const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.ogg`;
         const { error: uploadError } = await supabase.storage
-          .from('chat-audio')
+          .from('chat_audio')
           .upload(filePath, audioBlob, { contentType: 'audio/ogg' });
   
         if (uploadError) throw uploadError;
   
         const { data: { publicUrl } } = supabase.storage
-          .from('chat-audio')
+          .from('chat_audio')
           .getPublicUrl(filePath);
         audioUrl = publicUrl;
       }
@@ -321,8 +328,7 @@ export default function ChatPage() {
           avatar_url: currentUser.user_metadata.avatar_url || ""
         }
       }
-      setMessages(current => [...current, optimisticMessage]);
-
+      
       setNewMessage('');
       setAudioBlob(null);
   
@@ -333,11 +339,12 @@ export default function ChatPage() {
         .single();
   
       if (insertError) {
-        setMessages(current => current.filter(m => m.id !== tempMessageId));
         throw insertError;
       }
       
-      setMessages(current => current.map(m => (m.id === tempMessageId ? { ...optimisticMessage, ...insertedMessage } : m)));
+      // Optimistically add the message to the UI
+      optimisticMessage.id = insertedMessage.id;
+      setMessages(current => [...current, optimisticMessage]);
 
     } catch (error: any) {
       console.error("Erreur d'envoi de message:", error);

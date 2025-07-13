@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { User, AuthError } from '@supabase/supabase-js';
 
@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (email: string, pass: string) => Promise<AuthError | null>;
   signup: (email: string, pass: string, fullName: string) => Promise<AuthError | null>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -19,12 +20,19 @@ const AuthContext = createContext<AuthContextType>({
   login: async () => null,
   signup: async () => null,
   logout: async () => {},
+  refreshUser: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const supabase = createClient();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshUser = useCallback(async () => {
+    await supabase.auth.refreshSession();
+    const { data: { user } } = await supabase.auth.getUser();
+    setUser(user ?? null);
+  }, [supabase.auth]);
 
   useEffect(() => {
     const getUser = async () => {
@@ -39,6 +47,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       if (_event === 'INITIAL_SESSION') {
         setLoading(false);
+      }
+      if (_event === "USER_UPDATED") {
+        setUser(session?.user ?? null);
       }
     });
 
@@ -76,6 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     login,
     signup,
     logout,
+    refreshUser
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -84,5 +96,3 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 export const useAuth = () => {
   return useContext(AuthContext);
 };
-
-    

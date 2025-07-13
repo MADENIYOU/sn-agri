@@ -33,10 +33,12 @@ export function SidebarNav() {
 
   const getInitials = () => {
     if (!user) return "??";
-    const name = user.user_metadata.fullName;
+    const name = user.user_metadata.fullName || user.user_metadata.full_name;
     if (name) return name.split(' ').map((n:string) => n[0]).join('');
     return user.email?.substring(0, 2).toUpperCase() || '??';
   };
+  
+  const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name || user?.email;
 
   return (
     <>
@@ -77,11 +79,11 @@ export function SidebarNav() {
         <div className="flex items-center justify-between p-2">
           <Link href="/profile" className="flex items-center gap-2">
             <Avatar className="h-9 w-9">
-              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={user?.user_metadata.fullName || "User"} />
+              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={displayName || "User"} />
               <AvatarFallback>{getInitials()}</AvatarFallback>
             </Avatar>
             <div className="group-data-[collapsible=icon]:hidden">
-              <p className="font-semibold text-sm">{user?.user_metadata.fullName || user?.email}</p>
+              <p className="font-semibold text-sm">{displayName}</p>
               <p className="text-xs text-muted-foreground">Agriculteur</p>
             </div>
           </Link>
@@ -93,5 +95,3 @@ export function SidebarNav() {
     </>
   );
 }
-
-    
