@@ -1,3 +1,6 @@
+
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Sprout, Cloud, Users } from "lucide-react";
 import { FEED_POSTS } from "@/lib/constants";
@@ -5,12 +8,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProductionChart } from "./production-chart";
+import { useAuth } from "@/hooks/use-auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardPage() {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name;
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold font-headline">Bon retour, Moussa !</h1>
+        {displayName ? (
+          <h1 className="text-3xl font-bold font-headline">Bon retour, {displayName} !</h1>
+        ) : (
+          <Skeleton className="h-9 w-1/2" />
+        )}
         <p className="text-muted-foreground">Voici un résumé de votre ferme et de l'activité de la communauté.</p>
       </div>
 
