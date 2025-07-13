@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Sprout, Cloud, Users } from "lucide-react";
 import { FEED_POSTS } from "@/lib/constants";
@@ -10,10 +11,20 @@ import { Button } from "@/components/ui/button";
 import { ProductionChart } from "./production-chart";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getProfilesCount } from "./actions";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name;
+  const [profilesCount, setProfilesCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    async function fetchCount() {
+      const { count } = await getProfilesCount();
+      setProfilesCount(count);
+    }
+    fetchCount();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -30,7 +41,25 @@ export default function DashboardPage() {
         <StatCard title="Prévisions Météo" value="28°C, Ensoleillé" icon={<Cloud />} description="Prochaines 24h à Dakar" />
         <StatCard title="Cultures Actives" value="3 Variétés" icon={<Sprout />} description="Mil, Sorgho, Arachide" />
         <StatCard title="Prix du Marché" value="+2.5% Mil" icon={<BarChart />} description="vs. la semaine dernière" />
-        <StatCard title="Nouvelles Connexions" value="4 Agriculteurs" icon={<Users />} description="dans le fil communautaire" />
+        <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Communauté</CardTitle>
+                <div className="text-muted-foreground"><Users /></div>
+            </CardHeader>
+            <CardContent>
+                {profilesCount !== null ? (
+                    <>
+                        <div className="text-2xl font-bold">{profilesCount} Agriculteurs</div>
+                        <p className="text-xs text-muted-foreground">Connectés sur la plateforme.</p>
+                    </>
+                ) : (
+                    <>
+                       <Skeleton className="h-7 w-3/4" />
+                       <Skeleton className="h-3 w-1/2 mt-2" />
+                    </>
+                )}
+            </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
