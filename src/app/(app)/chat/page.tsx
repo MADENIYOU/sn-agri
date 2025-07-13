@@ -17,6 +17,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { findUserByEmail } from './actions';
+import lamejs from 'lamejs';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
@@ -172,12 +173,10 @@ export default function ChatPage() {
         async (payload) => {
           const newMessage = payload.new as Message;
   
-          // Ignore messages sent by the current user as they are handled optimistically
           if (newMessage.sender_id === currentUser.id) {
             return;
           }
   
-          // Fetch sender profile since it's not in the payload
           const { data: senderData, error: senderError } = await supabase
             .from('profiles')
             .select('full_name, avatar_url')
@@ -294,15 +293,15 @@ export default function ChatPage() {
     try {
       let audioUrl: string | null = null;
       if (audioBlob) {
-        const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.webm`;
+        const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.mp3`;
         const { error: uploadError } = await supabase.storage
-          .from('chat-audio') // Corrected bucket name
+          .from('chat-audio')
           .upload(filePath, audioBlob);
   
         if (uploadError) throw uploadError;
   
         const { data: { publicUrl } } = supabase.storage
-          .from('chat-audio') // Corrected bucket name
+          .from('chat-audio')
           .getPublicUrl(filePath);
         audioUrl = publicUrl;
       }
@@ -315,7 +314,6 @@ export default function ChatPage() {
         timestamp: sentAt,
       };
 
-      // Optimistically add message to the UI
       const optimisticMessage: Message = {
         ...messageToInsert,
         id: tempMessageId,
@@ -336,12 +334,10 @@ export default function ChatPage() {
         .single();
   
       if (insertError) {
-        // Revert optimistic update on failure
         setMessages(current => current.filter(m => m.id !== tempMessageId));
         throw insertError;
       }
       
-      // Replace temporary message with the real one from the database
       setMessages(current => current.map(m => (m.id === tempMessageId ? { ...optimisticMessage, ...insertedMessage } : m)));
 
     } catch (error: any) {
@@ -352,21 +348,50 @@ export default function ChatPage() {
     }
   };
 
+  const audioBufferToMp3 = async (audioBuffer: AudioBuffer): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const mp3encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
+      const samples = audioBuffer.getChannelData(0);
+      let mp3Data: Int8Array[] = [];
+  
+      const sampleBlockSize = 1152;
+      for (let i = 0; i < samples.length; i += sampleBlockSize) {
+        const sampleChunk = samples.subarray(i, i + sampleBlockSize);
+        const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
+        if (mp3buf.length > 0) {
+          mp3Data.push(new Int8Array(mp3buf));
+        }
+      }
+      const mp3buf = mp3encoder.flush();
+      if (mp3buf.length > 0) {
+        mp3Data.push(new Int8Array(mp3buf));
+      }
+  
+      const blob = new Blob(mp3Data, { type: 'audio/mp3' });
+      resolve(blob);
+    });
+  };
+
   const startRecording = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+        mediaRecorderRef.current = new MediaRecorder(stream);
         audioChunksRef.current = [];
         
         mediaRecorderRef.current.ondataavailable = (event) => {
           audioChunksRef.current.push(event.data);
         };
         
-        mediaRecorderRef.current.onstop = () => {
+        mediaRecorderRef.current.onstop = async () => {
           const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          setAudioBlob(audioBlob);
-          // Stop all tracks to release the microphone
+          const audioContext = new AudioContext();
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const mp3Blob = await audioBufferToMp3(audioBuffer);
+
+          setAudioBlob(mp3Blob);
+
           stream.getTracks().forEach(track => track.stop());
         };
         
