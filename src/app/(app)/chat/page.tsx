@@ -17,7 +17,6 @@ import { createClient } from '@/lib/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { findUserByEmail } from './actions';
-import lamejs from 'lamejs';
 
 export default function ChatPage() {
   const { user: currentUser } = useAuth();
@@ -293,10 +292,10 @@ export default function ChatPage() {
     try {
       let audioUrl: string | null = null;
       if (audioBlob) {
-        const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.mp3`;
+        const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.ogg`;
         const { error: uploadError } = await supabase.storage
           .from('chat-audio')
-          .upload(filePath, audioBlob);
+          .upload(filePath, audioBlob, { contentType: 'audio/ogg' });
   
         if (uploadError) throw uploadError;
   
@@ -348,50 +347,28 @@ export default function ChatPage() {
     }
   };
 
-  const audioBufferToMp3 = async (audioBuffer: AudioBuffer): Promise<Blob> => {
-    return new Promise((resolve) => {
-      const mp3encoder = new lamejs.Mp3Encoder(1, audioBuffer.sampleRate, 128);
-      const samples = audioBuffer.getChannelData(0);
-      let mp3Data: Int8Array[] = [];
-  
-      const sampleBlockSize = 1152;
-      for (let i = 0; i < samples.length; i += sampleBlockSize) {
-        const sampleChunk = samples.subarray(i, i + sampleBlockSize);
-        const mp3buf = mp3encoder.encodeBuffer(sampleChunk);
-        if (mp3buf.length > 0) {
-          mp3Data.push(new Int8Array(mp3buf));
-        }
-      }
-      const mp3buf = mp3encoder.flush();
-      if (mp3buf.length > 0) {
-        mp3Data.push(new Int8Array(mp3buf));
-      }
-  
-      const blob = new Blob(mp3Data, { type: 'audio/mp3' });
-      resolve(blob);
-    });
-  };
-
   const startRecording = async () => {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorderRef.current = new MediaRecorder(stream);
+        
+        const options = { mimeType: 'audio/ogg; codecs=opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            console.warn(`${options.mimeType} is not supported, falling back to default.`);
+            mediaRecorderRef.current = new MediaRecorder(stream);
+        } else {
+            mediaRecorderRef.current = new MediaRecorder(stream, options);
+        }
+
         audioChunksRef.current = [];
         
         mediaRecorderRef.current.ondataavailable = (event) => {
           audioChunksRef.current.push(event.data);
         };
         
-        mediaRecorderRef.current.onstop = async () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-          const audioContext = new AudioContext();
-          const arrayBuffer = await audioBlob.arrayBuffer();
-          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
-          const mp3Blob = await audioBufferToMp3(audioBuffer);
-
-          setAudioBlob(mp3Blob);
-
+        mediaRecorderRef.current.onstop = () => {
+          const audioBlob = new Blob(audioChunksRef.current, { type: options.mimeType });
+          setAudioBlob(audioBlob);
           stream.getTracks().forEach(track => track.stop());
         };
         
