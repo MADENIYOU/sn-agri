@@ -301,13 +301,13 @@ export default function ChatPage() {
       if (audioBlob) {
         const filePath = `${currentUser.id}/${selectedConversation.id}/${Date.now()}.ogg`;
         const { error: uploadError } = await supabase.storage
-          .from('chat_audio')
+          .from('chat-audio')
           .upload(filePath, audioBlob, { contentType: 'audio/ogg' });
   
         if (uploadError) throw uploadError;
   
         const { data: { publicUrl } } = supabase.storage
-          .from('chat_audio')
+          .from('chat-audio')
           .getPublicUrl(filePath);
         audioUrl = publicUrl;
       }
