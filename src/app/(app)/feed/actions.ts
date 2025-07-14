@@ -1,13 +1,13 @@
 
 'use server';
 
-import { createClient } from '@/lib/supabase/client';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import type { Post } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 
 export async function createPost(formData: FormData) {
-  const supabase = createClient();
+  const supabase = createSupabaseServerClient();
   const content = formData.get('content') as string;
   const imageFile = formData.get('image') as File | null;
   
