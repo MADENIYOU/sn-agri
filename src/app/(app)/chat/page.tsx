@@ -66,7 +66,7 @@ export default function ChatPage() {
         setNewMembers([self]);
       }
     }
-  }, [currentUser, isDialogOpen]);
+  }, [currentUser, isDialogOpen, newMembers]);
 
   // Fetch conversations the current user is part of
   const fetchConversations = useCallback(async () => {
@@ -120,7 +120,7 @@ export default function ChatPage() {
       }
     }
     setLoadingConversations(false);
-  }, [currentUser, supabase, toast, selectedConversation?.id]);
+  }, [currentUser, supabase, toast, selectedConversation]);
 
 
   useEffect(() => {
@@ -319,15 +319,6 @@ export default function ChatPage() {
         audio_url: audioUrl,
         timestamp: sentAt,
       };
-
-      const optimisticMessage: Message = {
-        ...messageToInsert,
-        id: tempMessageId,
-        sender: {
-          full_name: currentUser.user_metadata.fullName || "Moi",
-          avatar_url: currentUser.user_metadata.avatar_url || ""
-        }
-      }
       
       setNewMessage('');
       setAudioBlob(null);
@@ -335,20 +326,28 @@ export default function ChatPage() {
       const { data: insertedMessage, error: insertError } = await supabase
         .from('messages')
         .insert(messageToInsert)
-        .select()
+        .select('id')
         .single();
   
       if (insertError) {
         throw insertError;
       }
       
-      // Optimistically add the message to the UI
-      optimisticMessage.id = insertedMessage.id;
-      setMessages(current => [...current, optimisticMessage]);
+      const finalMessage: Message = {
+        ...messageToInsert,
+        id: insertedMessage.id,
+        sender: {
+          full_name: currentUser.user_metadata.fullName || "Moi",
+          avatar_url: currentUser.user_metadata.avatar_url || ""
+        }
+      }
+
+      setMessages(current => [...current.filter(m => m.id !== tempMessageId), finalMessage]);
 
     } catch (error: any) {
       console.error("Erreur d'envoi de message:", error);
       toast({ variant: 'destructive', title: 'Erreur', description: error.message || "Le message n'a pas pu être envoyé." });
+      setMessages(current => current.filter(m => m.id !== tempMessageId));
     } finally {
       setLoading(false);
     }
