@@ -38,7 +38,8 @@ export default function ProfilePage() {
 
     const file = event.target.files[0];
     const supabase = createClient();
-    const filePath = `${user.id}/${Date.now()}_${file.name}`;
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const filePath = `${user.id}/${Date.now()}_${sanitizedFileName}`;
     
     setUploading(true);
 
