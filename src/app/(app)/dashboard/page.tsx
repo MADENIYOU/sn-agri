@@ -4,26 +4,37 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { BarChart, Sprout, Cloud, Users } from "lucide-react";
-import { FEED_POSTS } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ProductionChart } from "./production-chart";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getProfilesCount } from "./actions";
+import { getProfilesCount, getRecentPosts } from "./actions";
+import type { Post } from "@/lib/types";
 
 export default function DashboardPage() {
   const { user } = useAuth();
   const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name;
   const [profilesCount, setProfilesCount] = useState<number | null>(null);
+  const [recentPosts, setRecentPosts] = useState<Post[]>([]);
+  const [loadingPosts, setLoadingPosts] = useState(true);
 
   useEffect(() => {
     async function fetchCount() {
       const { count } = await getProfilesCount();
       setProfilesCount(count);
     }
+    
+    async function fetchRecentPosts() {
+      setLoadingPosts(true);
+      const { posts } = await getRecentPosts();
+      setRecentPosts(posts);
+      setLoadingPosts(false);
+    }
+
     fetchCount();
+    fetchRecentPosts();
   }, []);
 
   return (
@@ -70,18 +81,32 @@ export default function DashboardPage() {
             <CardDescription>Derniers messages du fil communautaire.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {FEED_POSTS.slice(0, 3).map((post) => (
-              <div key={post.id} className="flex items-start gap-4">
-                <Avatar className="h-9 w-9">
-                  <AvatarImage src={post.author.avatar} alt={post.author.name} />
-                  <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="text-sm">
-                  <p className="font-semibold">{post.author.name}</p>
-                  <p className="text-muted-foreground line-clamp-2">{post.content}</p>
-                </div>
-              </div>
-            ))}
+            {loadingPosts ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-start gap-4">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-3 w-32" />
+                        </div>
+                    </div>
+                ))
+            ) : recentPosts.length > 0 ? (
+                recentPosts.map((post) => (
+                  <div key={post.id} className="flex items-start gap-4">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                      <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm">
+                      <p className="font-semibold">{post.author.name}</p>
+                      <p className="text-muted-foreground line-clamp-2">{post.content}</p>
+                    </div>
+                  </div>
+                ))
+            ) : (
+                <p className="text-sm text-center text-muted-foreground p-4">Aucune activité récente.</p>
+            )}
              <Button variant="outline" className="w-full" asChild>
                 <Link href="/feed">Voir tous les messages</Link>
             </Button>

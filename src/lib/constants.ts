@@ -1,3 +1,4 @@
+
 import { BarChart2, BrainCircuit, Home, Map, MessageSquare, Sprout, User, Users, MessageCircle } from "lucide-react";
 
 export const NAV_LINKS = [
@@ -84,51 +85,6 @@ export const CROP_DATA = [
   },
 ];
 
-export const FEED_POSTS = [
-  {
-    id: 1,
-    author: {
-      name: "Moussa Faye",
-      avatar: "/avatars/01.png",
-      role: "Agriculteur"
-    },
-    timestamp: "il y a 2 heures",
-    content: "Je viens de finir de planter le nouveau lot d'arachides pour la saison. L'humidité du sol est parfaite après la pluie de la semaine dernière. En espérant une excellente récolte cette année ! #AgricultureSénégal #Arachide",
-    image: {
-      src: "https://placehold.co/600x400.png",
-      aiHint: "farmer planting"
-    },
-    likes: 15,
-    comments: 3,
-  },
-  {
-    id: 2,
-    author: {
-      name: "Awa Diallo",
-      avatar: "/avatars/02.png",
-      role: "Agronome"
-    },
-    timestamp: "il y a 1 jour",
-    content: "Rappel aux collègues agriculteurs de la région de Kaolack : surveillez les premiers signes du mineur de l'épi de mil. La détection précoce et la lutte intégrée sont essentielles pour protéger votre rendement. Je suis disponible pour des consultations.",
-    image: null,
-    likes: 22,
-    comments: 8,
-  },
-  {
-    id: 3,
-    author: {
-      name: "Bio-Agri SARL",
-      avatar: "/avatars/03.png",
-      role: "Acheteur"
-    },
-    timestamp: "il y a 3 jours",
-    content: "Nous cherchons à nous approvisionner en 5 tonnes de niébé biologique certifié. Veuillez nous contacter avec vos offres et détails de certification. Prix compétitifs offerts !",
-    image: null,
-    likes: 8,
-    comments: 1,
-  },
-];
-
 export const SENEGAL_REGIONS = [
   "Dakar",
   "Diourbel",
@@ -147,17 +103,3 @@ export const SENEGAL_REGIONS = [
 ];
 
 export const SOIL_TYPES = ["Sableux", "Argileux", "Limoneux", "Sablo-limoneux", "Argilo-limoneux"];
-
-export const CHAT_USERS = [
-    { id: "1", name: "Moussa Faye", avatar: "/avatars/01.png", online: true },
-    { id: "2", name: "Awa Diallo", avatar: "/avatars/02.png", online: true },
-    { id: "3", name: "Ousmane Sow", avatar: "/avatars/03.png", online: false },
-    { id: "4", name: "Fatou Ndiaye", avatar: "/avatars/04.png", online: true },
-];
-
-export const CHAT_MESSAGES = [
-    { id: "msg1", userId: "2", message: "Bonjour Moussa ! As-tu vu la mise à jour du marché pour les arachides ?", timestamp: new Date(Date.now() - 1000 * 60 * 5), audioUrl: null },
-    { id: "msg2", userId: "1", message: "Salut Awa ! Oui, ça a l'air prometteur. J'espère que le prix se maintiendra.", timestamp: new Date(Date.now() - 1000 * 60 * 4), audioUrl: null },
-    { id: "msg3", userId: "2", message: "Croisons les doigts. Le nouvel engrais semble bien fonctionner de mon côté.", timestamp: new Date(Date.now() - 1000 * 60 * 3), audioUrl: null },
-    { id: "msg4", userId: "4", message: "Bienvenue tout le monde ! Je viens de rejoindre le chat.", timestamp: new Date(Date.now() - 1000 * 60 * 2), audioUrl: null },
-];

@@ -32,3 +32,17 @@ export type Message = {
         avatar_url: string;
     } | null;
 };
+
+export type Post = {
+    id: string;
+    user_id: string;
+    content: string;
+    image_url: string | null;
+    created_at: string;
+    author: {
+        name: string;
+        avatar: string;
+    };
+    likes: number;
+    comments: number;
+}
