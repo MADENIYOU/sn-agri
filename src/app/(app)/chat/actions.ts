@@ -22,10 +22,13 @@ export async function findUserByEmail(
     .eq('email', email.trim())
     .maybeSingle();
 
-  if (error || !data) {
-    // Note: Don't log the error message to the console in production for security reasons.
-    // This is just for debugging.
-    console.error('Error finding user:', error?.message);
+  if (error) {
+    // In a real production app, you would log this error to a monitoring service.
+    // For now, we return a more generic but helpful message.
+    return { user: null, error: 'An error occurred while searching for the user.' };
+  }
+
+  if (!data) {
     return { user: null, error: 'User not found.' };
   }
 
