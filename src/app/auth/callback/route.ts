@@ -6,8 +6,9 @@ import type { CookieOptions } from '@supabase/ssr';
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
-  // if "next" is in param, use it as the redirect URL
-  const next = searchParams.get('next') ?? '/dashboard';
+  
+  // The 'next' param is not used here, we always redirect to the confirmation page.
+  const redirectTo = `${origin}/confirmed`;
 
   if (code) {
     const supabase = createServerClient(
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
     );
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(redirectTo);
     }
   }
 
