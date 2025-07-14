@@ -59,7 +59,8 @@ export async function getPosts(): Promise<{ posts: Post[], error: string | null 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { posts: [], error: "Utilisateur non authentifié" };
 
-  const { data, error } = await supabase
+  const adminSupabase = createAdminClient();
+  const { data, error } = await adminSupabase
     .rpc('get_posts_with_details', { current_user_id: user.id });
 
   if (error) {

@@ -27,7 +27,8 @@ export async function getRecentPosts(): Promise<{ posts: Post[], error: string |
     return { posts: [], error: 'Utilisateur non authentifié' };
   }
   
-  const { data, error } = await supabase
+  const adminSupabase = createAdminClient();
+  const { data, error } = await adminSupabase
     .rpc('get_posts_with_details', { current_user_id: user.id })
     .limit(3);
 
