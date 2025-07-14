@@ -39,6 +39,7 @@
     "@supabase/ssr": "^0.5.1",
     "@supabase/supabase-js": "^2.45.1",
     "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "@vis.gl/react-google-maps": "^1.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
