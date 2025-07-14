@@ -1,7 +1,7 @@
 
 'use server';
 
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient, createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Post } from '@/lib/types';
 
 export async function getProfilesCount(): Promise<{ count: number | null; error: string | null }> {
@@ -20,18 +20,15 @@ export async function getProfilesCount(): Promise<{ count: number | null; error:
 }
 
 export async function getRecentPosts(): Promise<{ posts: Post[], error: string | null }> {
-  const supabase = createAdminClient();
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { posts: [], error: 'Utilisateur non authentifié' };
+  }
   
   const { data, error } = await supabase
-    .from('posts')
-    .select(`
-      *,
-      author:profiles (
-        full_name,
-        avatar_url
-      )
-    `)
-    .order('created_at', { ascending: false })
+    .rpc('get_posts_with_details', { current_user_id: user.id })
     .limit(3);
 
   if (error) {
@@ -39,20 +36,19 @@ export async function getRecentPosts(): Promise<{ posts: Post[], error: string |
     return { posts: [], error: 'Impossible de charger les publications récentes.' };
   }
 
-  const posts: Post[] = data.map(post => ({
+  const posts: Post[] = data.map((post: any) => ({
     id: post.id,
     content: post.content,
     image_url: post.image_url,
     created_at: post.created_at,
     user_id: post.user_id,
     author: {
-        // @ts-ignore
-        name: post.author?.full_name || 'Utilisateur inconnu',
-        // @ts-ignore
-        avatar: post.author?.avatar_url || '',
+        name: post.author?.name || 'Utilisateur inconnu',
+        avatar: post.author?.avatar || '',
     },
-    likes: 0,
-    comments: 0
+    likes: post.likes_count,
+    comments: post.comments_count,
+    user_has_liked: post.user_has_liked
   }));
   
   return { posts, error: null };

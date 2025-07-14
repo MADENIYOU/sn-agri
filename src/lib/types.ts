@@ -1,4 +1,5 @@
 
+
 export type User = {
     id: string;
     name: string;
@@ -45,4 +46,20 @@ export type Post = {
     };
     likes: number;
     comments: number;
+    user_has_liked?: boolean;
 }
+
+export type Comment = {
+    id: string;
+    post_id: string;
+    user_id: string;
+    content: string;
+    created_at: string;
+}
+
+export type CommentWithAuthor = Comment & {
+    author: {
+        name: string;
+        avatar: string;
+    };
+};

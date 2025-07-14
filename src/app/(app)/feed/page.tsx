@@ -5,18 +5,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { ThumbsUp, MessageSquare, Share2, Send, Image as ImageIcon, X, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/hooks/use-auth";
-import { createPost, getPosts } from './actions';
+import { createPost, getPosts, toggleLike, addComment, getComments } from './actions';
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useRef, useState, useTransition } from "react";
-import type { Post } from "@/lib/types";
+import { useEffect, useRef, useState, useTransition, useCallback } from "react";
+import type { Post, CommentWithAuthor } from "@/lib/types";
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 
-function CreatePostForm() {
+function CreatePostForm({ onPostCreated }: { onPostCreated: () => void }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -46,6 +48,7 @@ function CreatePostForm() {
                 if (imageInputRef.current) {
                     imageInputRef.current.value = "";
                 }
+                onPostCreated(); // Callback to refresh posts
             }
         });
     }
@@ -97,10 +100,74 @@ function CreatePostForm() {
     )
 }
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => void }) {
+    const { toast } = useToast();
+    const [isLiking, startLikeTransition] = useTransition();
+    const [isCommenting, startCommentTransition] = useTransition();
+    const [comment, setComment] = useState("");
+    const [showComments, setShowComments] = useState(false);
+    const [comments, setComments] = useState<CommentWithAuthor[]>([]);
+    const [loadingComments, setLoadingComments] = useState(false);
+
+    const handleLikeClick = () => {
+        startLikeTransition(async () => {
+            const { error } = await toggleLike(post.id);
+            if (error) {
+                toast({ variant: 'destructive', title: 'Erreur', description: error });
+            } else {
+                onInteraction();
+            }
+        });
+    }
+
+    const handleShareClick = () => {
+        const postUrl = `${window.location.origin}/post/${post.id}`;
+        navigator.clipboard.writeText(postUrl);
+        toast({ title: "Lien copié !", description: "Le lien vers la publication a été copié dans votre presse-papiers."});
+    }
+
+    const handleCommentSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (comment.trim() === "") return;
+
+        startCommentTransition(async () => {
+            const { error } = await addComment({ postId: post.id, content: comment });
+            if (error) {
+                toast({ variant: 'destructive', title: 'Erreur', description: error });
+            } else {
+                setComment("");
+                onInteraction();
+                // Refresh comments if they are visible
+                if(showComments) {
+                    fetchComments();
+                }
+            }
+        });
+    }
+
+    const fetchComments = useCallback(async () => {
+        setLoadingComments(true);
+        const { comments, error } = await getComments(post.id);
+        if (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: error });
+        } else if (comments) {
+            setComments(comments);
+        }
+        setLoadingComments(false);
+    }, [post.id, toast]);
+
+
+    const toggleCommentSection = () => {
+        const newShowState = !showComments;
+        setShowComments(newShowState);
+        if(newShowState && comments.length === 0) {
+            fetchComments();
+        }
+    }
+
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
                 <Avatar>
                     <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
                     <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
@@ -110,7 +177,7 @@ function PostCard({ post }: { post: Post }) {
                     <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}</p>
                 </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="px-4 pb-2">
               <p className="whitespace-pre-line">{post.content}</p>
               {post.image_url && (
                 <div className="mt-4 rounded-lg overflow-hidden border">
@@ -124,37 +191,76 @@ function PostCard({ post }: { post: Post }) {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex justify-between border-t pt-4">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <ThumbsUp className="w-4 h-4" /> <span>{post.likes} J'aime</span>
+            <CardFooter className="flex justify-between border-t p-2">
+              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeClick} disabled={isLiking}>
+                <ThumbsUp className={cn("w-4 h-4", post.user_has_liked && "fill-primary text-primary")} /> 
+                <span>{post.likes} J'aime</span>
               </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" /> <span>{post.comments} Commentaire</span>
+              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={toggleCommentSection}>
+                <MessageSquare className="w-4 h-4" /> 
+                <span>{post.comments} Commentaire</span>
               </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2">
-                <Share2 className="w-4 h-4" /> <span>Partager</span>
+              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShareClick}>
+                <Share2 className="w-4 h-4" /> 
+                <span>Partager</span>
               </Button>
             </CardFooter>
+            {showComments && (
+                <div className="p-4 border-t">
+                    <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
+                        <Input 
+                          value={comment} 
+                          onChange={(e) => setComment(e.target.value)} 
+                          placeholder="Ajouter un commentaire..."
+                          disabled={isCommenting}
+                        />
+                        <Button type="submit" size="icon" disabled={isCommenting || comment.trim() === ""}>
+                            {isCommenting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4" />}
+                        </Button>
+                    </form>
+                    <div className="space-y-4">
+                        {loadingComments ? (
+                            <div className="flex justify-center"><Loader2 className="w-5 h-5 animate-spin"/></div>
+                        ) : comments.length > 0 ? (
+                            comments.map(c => (
+                                <div key={c.id} className="flex items-start gap-2 text-sm">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={c.author.avatar || undefined} />
+                                        <AvatarFallback>{c.author.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1 bg-muted rounded-lg p-2">
+                                        <p className="font-semibold">{c.author.name}</p>
+                                        <p className="text-muted-foreground">{c.content}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-sm text-center text-muted-foreground">Aucun commentaire pour le moment.</p>
+                        )}
+                    </div>
+                </div>
+            )}
           </Card>
     );
 }
 
+
 function PostSkeleton() {
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+            <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
                 <Skeleton className="h-10 w-10 rounded-full" />
                 <div className="space-y-2">
                     <Skeleton className="h-4 w-[150px]" />
                     <Skeleton className="h-3 w-[100px]" />
                 </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 px-4 pb-4">
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-4/5" />
               <Skeleton className="h-48 w-full rounded-md" />
             </CardContent>
-            <CardFooter className="flex justify-between border-t pt-4">
+            <CardFooter className="flex justify-between border-t p-2">
               <Skeleton className="h-8 w-24" />
               <Skeleton className="h-8 w-24" />
               <Skeleton className="h-8 w-24" />
@@ -168,19 +274,20 @@ export default function FeedPage() {
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
-    useEffect(() => {
-        const fetchPosts = async () => {
-            setLoading(true);
-            const { posts, error } = await getPosts();
-            if (error) {
-                toast({ variant: 'destructive', title: 'Erreur', description: error });
-            } else {
-                setPosts(posts);
-            }
-            setLoading(false);
+    const fetchPosts = useCallback(async () => {
+        setLoading(true);
+        const { posts, error } = await getPosts();
+        if (error) {
+            toast({ variant: 'destructive', title: 'Erreur', description: error });
+        } else {
+            setPosts(posts);
         }
-        fetchPosts();
+        setLoading(false);
     }, [toast]);
+
+    useEffect(() => {
+        fetchPosts();
+    }, [fetchPosts]);
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
@@ -191,7 +298,7 @@ export default function FeedPage() {
         </p>
       </div>
 
-      <CreatePostForm />
+      <CreatePostForm onPostCreated={fetchPosts} />
       
       <div className="space-y-6">
         {loading ? (
@@ -200,7 +307,7 @@ export default function FeedPage() {
                 <PostSkeleton />
             </>
         ) : posts.length > 0 ? (
-            posts.map((post) => <PostCard key={post.id} post={post} />)
+            posts.map((post) => <PostCard key={post.id} post={post} onInteraction={fetchPosts} />)
         ) : (
             <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
