@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       email,
       password: pass,
       options: {
+        emailRedirectTo: 'https://agrisen-two.vercel.app/auth/callback',
         data: {
           full_name: fullName,
         },
