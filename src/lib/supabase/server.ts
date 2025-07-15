@@ -1,12 +1,11 @@
-
-import { createServerClient as createSsrServerClient, type CookieOptions } from '@supabase/ssr';
-import { createServerClient as createBaseServerClient } from '@supabase/supabase-js';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
 export function createSupabaseServerClient() {
   const cookieStore = cookies();
 
-  return createSsrServerClient(
+  return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -39,8 +38,8 @@ export function createSupabaseServerClient() {
 
 export function createAdminClient() {
     // The admin client uses the service role key and does not need to manage cookies
-    // for user sessions, as it has elevated privileges. It uses the base server client.
-    return createBaseServerClient(
+    // for user sessions, as it has elevated privileges. It uses the standard client.
+    return createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         {
