@@ -40,7 +40,7 @@ const CarteSenegal: React.FC = () => {
         timezone: response.data.timezone,
       });
       setRegionName(response.data.name || fallbackRegion);
-    } catch (error) {
+    } catchgit  (error) {
       console.error("Erreur lors de la récupération météo :", error);
     } finally {
     }
