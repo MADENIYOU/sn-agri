@@ -11,8 +11,6 @@ const CarteSenegal: React.FC = () => {
   const [clickedRegion, setClickedRegion] = useState<string | null>(null);
   const [weatherData, setWeatherData] = useState<any>(null);
   const [regionName, setRegionName] = useState<string>("");
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
 
   const fetchWeatherByCoords = async (
     lat: number,
@@ -45,14 +43,13 @@ const CarteSenegal: React.FC = () => {
     } catch (error) {
       console.error("Erreur lors de la récupération météo :", error);
     } finally {
-      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     const fetchWeatherByLocation = async () => {
       if (!navigator.geolocation) {
-        console.error("La géolocalisation n'est pas supportée.");
+        console.error("La géolocalisation n’est pas supportée.");
         fetchWeatherByCoords(14.7167, -17.4677, "Dakar");
         return;
       }
@@ -73,7 +70,6 @@ const CarteSenegal: React.FC = () => {
   }, []);
 
   const fetchWeatherByRegion = async (region: string) => {
-    setIsLoading(true);
     const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
     const url = `https://api.openweathermap.org/data/2.5/weather?q=${region}&appid=${apiKey}&units=metric`;
 
@@ -104,10 +100,11 @@ const CarteSenegal: React.FC = () => {
       console.error("Erreur lors de la récupération des données météo", error);
       setWeatherData(null);
     } finally {
-      setIsLoading(false);
+      console.log("Fait");
     }
   };
 
+  
   const getMaleVoice = () => {
     if (typeof window === 'undefined') return null;
 
@@ -116,7 +113,7 @@ const CarteSenegal: React.FC = () => {
     const maleVoice = voices.find(
       voice =>
         voice.lang.startsWith('fr-FR') &&
-        (voice.name.toLowerCase().includes('male') ||
+        ( voice.name.toLowerCase().includes('male') ||
           voice.name.toLowerCase().includes('matthieu') ||
           voice.name.toLowerCase().includes('pierre'))
     );
@@ -124,6 +121,7 @@ const CarteSenegal: React.FC = () => {
     return maleVoice || voices.find(voice => voice.lang.startsWith('fr-FR'));
   };
 
+  
   const speakRegionName = (regionName: string) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
@@ -139,13 +137,14 @@ const CarteSenegal: React.FC = () => {
     window.speechSynthesis.speak(utterance);
   };
 
+  
   const speakWeatherInfo = async (weatherData: any) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
 
     window.speechSynthesis.cancel();
 
     const { regionName, temperature, description, windSpeed, feelsLike, clouds } = weatherData;
-    let translatedDescription = description;
+    let translatedDescription = description; 
 
     try {
       const result = await translate(description, { from: 'en', to: 'fr' });
@@ -153,13 +152,13 @@ const CarteSenegal: React.FC = () => {
     } catch (error) {
       console.error("Erreur lors de la traduction :", error);
     }
-
+    
     const textToSpeak = `
       Vous avez sélectionné ${regionName}. 
       Il fait actuellement ${temperature} degrés, mais le ressenti est de ${feelsLike}.  
       Nous avons un ${translatedDescription}. 
       Le vent souffle à ${windSpeed} mètres par seconde.
-      Le taux de présence des nuages est de ${clouds} %.
+      Le tauc de présence des nuages est de ${clouds} %.
     `;
 
     const utterance = new SpeechSynthesisUtterance(textToSpeak);
@@ -174,6 +173,7 @@ const CarteSenegal: React.FC = () => {
 
     window.speechSynthesis.speak(utterance);
   };
+  
 
   useEffect(() => {
     if (weatherData) {
@@ -181,6 +181,7 @@ const CarteSenegal: React.FC = () => {
     }
   }, [weatherData]);
 
+  
   useEffect(() => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = () => {
@@ -189,53 +190,26 @@ const CarteSenegal: React.FC = () => {
     }
   }, []);
 
+  
   const handleClick = (region: string) => {
     setClickedRegion(region);
     fetchWeatherByRegion(region);
     speakRegionName(region);
   };
 
-  if (isLoading) {
-    return (
-      <div className="h-full w-full flex flex-col">
-        <div className="p-6">
-          <Skeleton className="h-40 w-full rounded-xl" />
-        </div>
-        <div className="flex-1 p-6 pt-0">
-          <Skeleton className="h-full w-full rounded-xl" />
-        </div>
-      </div>
-    );
-  }
-
+  
   return (
-    <div className="h-full w-full flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50">
-      {/* Weather Card Section */}
+    <div className="carte-senegal-container bg-gray-400 m-0 w-full flex flex-col">
       {weatherData && (
-        <div className="p-6 pb-3">
-          <div className="backdrop-blur-sm bg-white/80 rounded-2xl shadow-lg border border-white/20 p-6">
-            <WeatherCardGrid regionName={regionName} weatherData={weatherData} />
-          </div>
+        <div className="w-[1200px] flex justify-center p-4">
+          <WeatherCardGrid regionName={regionName} weatherData={weatherData} />
         </div>
-      )}
+      )};
 
-      {/* Map Section */}
-      <div className="flex-1 p-6 pt-3">
-        <div className="h-full relative">
-          {/* Background with animated gradient */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-emerald-900/20 to-slate-900/20 rounded-2xl"></div>
-          
-          {/* Glassmorphism container */}
-          <div className="relative h-full backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
-            {/* Animated background elements */}
-            <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-xl animate-pulse"></div>
-            <div className="absolute bottom-10 right-10 w-48 h-48 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-xl animate-pulse delay-700"></div>
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-violet-400/10 to-purple-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
-            
-            {/* Map container */}
-            <div className="relative h-full flex items-center justify-center p-8">
-              <div className="w-full max-w-4xl h-full flex items-center justify-center">
-              <svg
+      
+      <div className="flex-grow w-[1200px] flex items-center h-screen justify-center overflow-auto bg-gray-400 rounded-lg shadow-inner">
+
+        <svg
           xmlns="http://www.w3.org/2000/svg"
           xmlnsXlink="http://www.w3.org/1999/xlink"
           version="1.1"
@@ -384,24 +358,10 @@ const CarteSenegal: React.FC = () => {
             
           </g>
         </svg>
-
-              </div>
-            </div>
-          </div>
-
-          {/* Floating region info */}
-          {hoveredRegion && (
-            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-white/20 animate-in fade-in-0 slide-in-from-top-2 duration-200">
-              <p className="text-sm font-semibold text-gray-700">
-                Région: {hoveredRegion}
-              </p>
-              <p className="text-xs text-gray-500">
-                Cliquez pour voir la météo
-              </p>
-            </div>
-          )}
-        </div>
       </div>
+    
+
+
     </div>
   );
 };
