@@ -25,7 +25,7 @@ const CarteSenegal: React.FC = () => {
   return (
     <div className="carte-senegal-container bg-gray-400 m-0 w-full flex flex-col">
       
-      <div className="flex-grow w-[1200px] flex items-center h-screen justify-center overflow-auto bg-gray-400 rounded-lg shadow-inner">
+      <div className="relative h-full w-full">
 
         <svg
           xmlns="http://www.w3.org/2000/svg"
