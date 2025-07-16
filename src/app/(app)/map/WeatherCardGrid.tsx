@@ -6,7 +6,7 @@ import { Cloud, Droplets, Gauge, Sunrise, Sunset, Wind, Eye } from "lucide-react
 import Image from "next/image";
 
 const WeatherInfoCard = ({ title, value, icon, unit }) => (
-  <Card className="text-center flex flex-col justify-center items-center p-2">
+  <Card className="text-center flex flex-col justify-center items-center p-2 bg-background/50">
     <CardHeader className="p-2">
       <div className="mx-auto bg-primary/10 p-2 rounded-full w-fit mb-2 text-primary">
         {icon}
@@ -51,7 +51,7 @@ const WeatherCardGrid = ({ regionName, weatherData }) => {
       <h2 className="text-2xl font-bold font-headline mb-4 text-center">Météo pour {regionName}</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         <Card className="col-span-2 md:col-span-3 lg:col-span-2 xl:col-span-1 flex flex-col items-center justify-center bg-primary/90 text-primary-foreground p-4">
-          <Image
+          <img
             src={`https://openweathermap.org/img/wn/${icon}@4x.png`}
             alt={description}
             width={100}
@@ -67,7 +67,7 @@ const WeatherCardGrid = ({ regionName, weatherData }) => {
         <WeatherInfoCard title="Couverture Nuageuse" value={clouds} icon={<Cloud className="w-6 h-6"/>} unit="%" />
         <WeatherInfoCard title="Visibilité" value={visibility / 1000} icon={<Eye className="w-6 h-6"/>} unit="km" />
         
-        <Card className="text-center flex flex-col justify-center items-center p-2">
+        <Card className="text-center flex flex-col justify-center items-center p-2 bg-background/50">
             <CardHeader className="p-2">
                 <div className="mx-auto bg-primary/10 p-2 rounded-full w-fit mb-2 text-primary">
                     <Wind className="w-6 h-6"/>
