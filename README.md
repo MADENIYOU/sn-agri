@@ -58,4 +58,4 @@ Pour lancer le projet localement, suivez ces étapes :
 
 ---
 
-Fait avec ❤️ pour l'agriculture sénégalaise.
+Fait avec ❤️  pour l'agriculture sénégalaise.
