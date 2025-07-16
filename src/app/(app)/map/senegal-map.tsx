@@ -12,6 +12,7 @@ const CarteSenegal: React.FC = () => {
   const [weatherData, setWeatherData] = useState<any>(null);
   const [regionName, setRegionName] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [hoveredRegion, setHoveredRegion] = useState<string | null>(null);
 
   const fetchWeatherByCoords = async (
     lat: number,
@@ -196,32 +197,45 @@ const CarteSenegal: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-full w-full flex flex-col gap-4">
-        <div className="flex justify-center">
-          <Skeleton className="h-32 w-full max-w-4xl" />
+      <div className="h-full w-full flex flex-col">
+        <div className="p-6">
+          <Skeleton className="h-40 w-full rounded-xl" />
         </div>
-        <div className="flex-grow flex items-center justify-center">
-          <Skeleton className="h-96 w-full max-w-2xl" />
+        <div className="flex-1 p-6 pt-0">
+          <Skeleton className="h-full w-full rounded-xl" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full w-full flex flex-col gap-4">
+    <div className="h-full w-full flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-emerald-50">
       {/* Weather Card Section */}
       {weatherData && (
-        <div className="flex justify-center px-4">
-          <div className="w-full max-w-6xl">
+        <div className="p-6 pb-3">
+          <div className="backdrop-blur-sm bg-white/80 rounded-2xl shadow-lg border border-white/20 p-6">
             <WeatherCardGrid regionName={regionName} weatherData={weatherData} />
           </div>
         </div>
       )}
 
       {/* Map Section */}
-      <div className="flex-grow flex items-center justify-center px-4">
-        <div className="w-full max-w-4xl h-full min-h-96 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg shadow-inner p-4">
-        <svg
+      <div className="flex-1 p-6 pt-3">
+        <div className="h-full relative">
+          {/* Background with animated gradient */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-emerald-900/20 to-slate-900/20 rounded-2xl"></div>
+          
+          {/* Glassmorphism container */}
+          <div className="relative h-full backdrop-blur-xl bg-white/10 rounded-2xl shadow-2xl border border-white/20 overflow-hidden">
+            {/* Animated background elements */}
+            <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-br from-blue-400/20 to-cyan-400/20 rounded-full blur-xl animate-pulse"></div>
+            <div className="absolute bottom-10 right-10 w-48 h-48 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-xl animate-pulse delay-700"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-br from-violet-400/10 to-purple-400/10 rounded-full blur-2xl animate-pulse delay-1000"></div>
+            
+            {/* Map container */}
+            <div className="relative h-full flex items-center justify-center p-8">
+              <div className="w-full max-w-4xl h-full flex items-center justify-center">
+              <svg
           xmlns="http://www.w3.org/2000/svg"
           xmlnsXlink="http://www.w3.org/1999/xlink"
           version="1.1"
@@ -370,6 +384,22 @@ const CarteSenegal: React.FC = () => {
             
           </g>
         </svg>
+
+              </div>
+            </div>
+          </div>
+
+          {/* Floating region info */}
+          {hoveredRegion && (
+            <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg border border-white/20 animate-in fade-in-0 slide-in-from-top-2 duration-200">
+              <p className="text-sm font-semibold text-gray-700">
+                Région: {hoveredRegion}
+              </p>
+              <p className="text-xs text-gray-500">
+                Cliquez pour voir la météo
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>
