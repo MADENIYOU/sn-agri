@@ -1,195 +1,19 @@
 //@ts-nocheck
 
 "use client";
-import axios from "axios";
-import translate from 'translate';
 import React, { useEffect, useState } from "react";
-import WeatherCardGrid from "./WeatherCardGrid";
-import { Skeleton } from "@/components/ui/skeleton";
 
 const CarteSenegal: React.FC = () => {
   const [clickedRegion, setClickedRegion] = useState<string | null>(null);
-  const [weatherData, setWeatherData] = useState<any>(null);
-  const [regionName, setRegionName] = useState<string>("");
 
-  const fetchWeatherByCoords = async (
+  const handleRegionClick = async (
+    regionId: string,
+    regionTitle: string,
     lat: number,
-    lon: number,
-    fallbackRegion = ""
+    lon: number
   ) => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-    const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
-
-    try {
-      const response = await axios.get(url);
-      setWeatherData({
-        regionName: response.data.name,
-        temperature: response.data.main.temp,
-        feelsLike: response.data.main.feels_like,
-        humidity: response.data.main.humidity,
-        pressure: response.data.main.pressure,
-        windSpeed: response.data.wind.speed,
-        windDirection: response.data.wind.deg,
-        clouds: response.data.clouds.all,
-        visibility: response.data.visibility,
-        description: response.data.weather[0].description,
-        icon: response.data.weather[0].icon,
-        sunrise: response.data.sys.sunrise,
-        sunset: response.data.sys.sunset,
-        country: response.data.sys.country,
-        timezone: response.data.timezone,
-      });
-      setRegionName(response.data.name || fallbackRegion);
-    } catch (error) {
-      console.error("Erreur lors de la récupération météo :", error);
-    } finally {
-    }
+    setClickedRegion(regionTitle);
   };
-
-  useEffect(() => {
-    const fetchWeatherByLocation = async () => {
-      if (!navigator.geolocation) {
-        console.error("La géolocalisation n’est pas supportée.");
-        fetchWeatherByCoords(14.7167, -17.4677, "Dakar");
-        return;
-      }
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          fetchWeatherByCoords(latitude, longitude);
-        },
-        (error) => {
-          console.warn("Permission refusée ou erreur géolocalisation :", error);
-          fetchWeatherByCoords(14.7167, -17.4677, "Dakar");
-        }
-      );
-    };
-
-    fetchWeatherByLocation();
-  }, []);
-
-  const fetchWeatherByRegion = async (region: string) => {
-    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${region}&appid=${apiKey}&units=metric`;
-
-    try {
-      const response = await axios.get(url);
-      const data = response.data;
-
-      setWeatherData({
-        regionName: response.data.name,
-        temperature: data.main.temp,
-        feelsLike: data.main.feels_like,
-        humidity: data.main.humidity,
-        pressure: data.main.pressure,
-        windSpeed: data.wind.speed,
-        windDirection: data.wind.deg,
-        clouds: data.clouds.all,
-        visibility: data.visibility,
-        description: data.weather[0].description,
-        icon: data.weather[0].icon,
-        sunrise: data.sys.sunrise,
-        sunset: data.sys.sunset,
-        country: data.sys.country,
-        timezone: data.timezone,
-      });
-
-      setRegionName(region);
-    } catch (error) {
-      console.error("Erreur lors de la récupération des données météo", error);
-      setWeatherData(null);
-    } finally {
-      console.log("Fait");
-    }
-  };
-
-  
-  const getMaleVoice = () => {
-    if (typeof window === 'undefined') return null;
-
-    const voices = window.speechSynthesis.getVoices();
-
-    const maleVoice = voices.find(
-      voice =>
-        voice.lang.startsWith('fr-FR') &&
-        ( voice.name.toLowerCase().includes('male') ||
-          voice.name.toLowerCase().includes('matthieu') ||
-          voice.name.toLowerCase().includes('pierre'))
-    );
-
-    return maleVoice || voices.find(voice => voice.lang.startsWith('fr-FR'));
-  };
-
-  
-  const speakRegionName = (regionName: string) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(regionName);
-    utterance.lang = 'fr-FR';
-
-    const maleVoice = getMaleVoice();
-    if (maleVoice) {
-      utterance.voice = maleVoice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  };
-
-  
-  const speakWeatherInfo = async (weatherData: any) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-    window.speechSynthesis.cancel();
-
-    const { regionName, temperature, description, windSpeed, feelsLike, clouds } = weatherData;
-    let translatedDescription = description; 
-
-    try {
-      const result = await translate(description, { from: 'en', to: 'fr' });
-      translatedDescription = result;
-    } catch (error) {
-      console.error("Erreur lors de la traduction :", error);
-    }
-    
-    const textToSpeak = `
-      Vous avez sélectionné ${regionName}. 
-      Il fait actuellement ${temperature} degrés, mais le ressenti est de ${feelsLike}.  
-      Nous avons un ${translatedDescription}. 
-      Le vent souffle à ${windSpeed} mètres par seconde.
-      Le tauc de présence des nuages est de ${clouds} %.
-    `;
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = 'fr-FR';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.1;
-
-    const maleVoice = getMaleVoice();
-    if (maleVoice) {
-      utterance.voice = maleVoice;
-    }
-
-    window.speechSynthesis.speak(utterance);
-  };
-  
-
-  useEffect(() => {
-    if (weatherData) {
-      speakWeatherInfo(weatherData);
-    }
-  }, [weatherData]);
-
-  
-  useEffect(() => {
-    if ('speechSynthesis' in window) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        console.log("Voix chargées");
-      };
-    }
-  }, []);
-
   
   const handleClick = (region: string) => {
     setClickedRegion(region);
@@ -200,12 +24,6 @@ const CarteSenegal: React.FC = () => {
   
   return (
     <div className="carte-senegal-container bg-gray-400 m-0 w-full flex flex-col">
-      {weatherData && (
-        <div className="w-[1200px] flex justify-center p-4">
-          <WeatherCardGrid regionName={regionName} weatherData={weatherData} />
-        </div>
-      )};
-
       
       <div className="flex-grow w-[1200px] flex items-center h-screen justify-center overflow-auto bg-gray-400 rounded-lg shadow-inner">
 
