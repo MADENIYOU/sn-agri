@@ -2,42 +2,32 @@
 'use server';
 
 import { createAdminClient, createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Post } from '@/lib/types';
+import type { Post, ProductionDetails } from '@/lib/types';
+import axios from 'axios';
 
-export async function getProfilesCount(): Promise<{ count: number | null; error: string | null }> {
-  const supabase = createAdminClient();
-
-  const { count, error } = await supabase
-    .from('profiles')
-    .select('*', { count: 'exact', head: true });
-
-  if (error) {
-    console.error('Error fetching profiles count:', error.message);
-    return { count: null, error: 'Impossible de récupérer le nombre de profils.' };
-  }
-
-  return { count, error: null };
-}
-
-export async function getRecentPosts(): Promise<{ posts: Post[], error: string | null }> {
+export async function getDashboardData() {
   const supabase = createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    return { posts: [], error: 'Utilisateur non authentifié' };
+    throw new Error('User not authenticated');
   }
-  
+
   const adminSupabase = createAdminClient();
-  const { data, error } = await adminSupabase
-    .rpc('get_posts_with_details', { current_user_id: user.id })
-    .limit(3);
 
-  if (error) {
-    console.error('Error fetching recent posts:', error);
-    return { posts: [], error: 'Impossible de charger les publications récentes.' };
-  }
+  const [profilesCountResult, postsResult, productionDetailsResult] = await Promise.all([
+    adminSupabase.from('profiles').select('*', { count: 'exact', head: true }),
+    adminSupabase.rpc('get_posts_with_details', { current_user_id: user.id }).limit(3),
+    supabase.from('production_details').select('*').eq('user_id', user.id).maybeSingle(),
+  ]);
 
-  const posts: Post[] = data.map((post: any) => ({
+  const { count: profilesCount, error: profilesCountError } = profilesCountResult;
+  if (profilesCountError) console.error('Error fetching profiles count:', profilesCountError.message);
+
+  const { data: postsData, error: postsError } = postsResult;
+  if (postsError) console.error('Error fetching recent posts:', postsError);
+  
+  const posts: Post[] = postsData?.map((post: any) => ({
     id: post.id,
     content: post.content,
     image_url: post.image_url,
@@ -50,7 +40,62 @@ export async function getRecentPosts(): Promise<{ posts: Post[], error: string |
     likes: post.likes_count,
     comments: post.comments_count,
     user_has_liked: post.user_has_liked
-  }));
+  })) || [];
+
+  const { data: productionDetails, error: productionDetailsError } = productionDetailsResult;
+  if (productionDetailsError) console.error('Error fetching production details:', productionDetailsError.message);
   
-  return { posts, error: null };
+  // Fetch weather data
+  let weatherData = null;
+  const region = user.user_metadata.region;
+  if (region) {
+    const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+    if (apiKey) {
+      const url = `https://api.openweathermap.org/data/2.5/weather?q=${region},SN&appid=${apiKey}&units=metric&lang=fr`;
+      try {
+        const response = await axios.get(url);
+        weatherData = {
+          temperature: Math.round(response.data.main.temp),
+          description: response.data.weather[0].description,
+          icon: response.data.weather[0].icon,
+        };
+      } catch (error) {
+        console.error("Error fetching weather for dashboard:", error);
+      }
+    }
+  }
+
+
+  return {
+    profilesCount,
+    posts,
+    productionDetails: productionDetails as ProductionDetails | null,
+    weatherData,
+  };
+}
+
+
+export async function upsertProductionDetails(details: { crop_name: string; soil_type: string; surface_area: number }) {
+  const supabase = createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: 'Utilisateur non authentifié.' };
+  }
+
+  const { data, error } = await supabase
+    .from('production_details')
+    .upsert({
+      user_id: user.id,
+      ...details,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error upserting production details:', error);
+    return { error: 'Impossible de mettre à jour les détails de production.' };
+  }
+
+  return { data };
 }

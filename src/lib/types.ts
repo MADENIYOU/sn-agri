@@ -1,5 +1,6 @@
 
 
+
 export type User = {
     id: string;
     name: string;
@@ -63,3 +64,13 @@ export type CommentWithAuthor = Comment & {
         avatar: string;
     };
 };
+
+export type ProductionDetails = {
+    id: string;
+    user_id: string;
+    crop_name: string;
+    soil_type: string;
+    surface_area: number;
+    created_at: string;
+    updated_at: string;
+}

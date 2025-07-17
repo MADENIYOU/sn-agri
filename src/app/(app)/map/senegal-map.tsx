@@ -147,16 +147,11 @@ const CarteSenegal: React.FC = () => {
           xmlnsXlink="http://www.w3.org/1999/xlink"
           version="1.1"
           viewBox="0 350 728 609"
-          className="carte-senegal rounded-2xl max-w-full max-h-full"
+          className="carte-senegal rounded-2xl w-full max-w-[400px] h-auto"
         >
           <defs>
             <style type="text/css">
               {`
-                  .carte-senegal-container {
-                      width: 50%;
-                      float: left;
-                  }
-
                 .land {
                   fill: #4CAF50;
                   fill-opacity: 1;

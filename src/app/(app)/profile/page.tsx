@@ -5,24 +5,26 @@ import { useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { updateUserAvatar } from "./actions";
-import { useRouter } from "next/navigation";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SENEGAL_REGIONS } from "@/lib/constants";
 
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
+  const [updatingRegion, setUpdatingRegion] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   
   // Local state for optimistic UI updates
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata.avatar_url || undefined);
+  const [region, setRegion] = useState(user?.user_metadata.region || "");
   
   const getInitials = () => {
     if (!user) return "??";
@@ -56,7 +58,7 @@ export default function ProfilePage() {
 
       if (!publicUrl) throw new Error('Could not get public URL for avatar.');
 
-      const { success, error: updateError } = await updateUserAvatar(user.id, publicUrl);
+      const { error: updateError } = await updateUserAvatar(user.id, publicUrl);
 
       if (updateError) throw new Error(updateError);
       
@@ -71,6 +73,26 @@ export default function ProfilePage() {
       setUploading(false);
     }
   }
+
+  const handleRegionUpdate = async () => {
+    if (!user || !region) {
+      toast({variant: 'destructive', description: "Veuillez sélectionner une région."});
+      return;
+    }
+    setUpdatingRegion(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({
+      data: { region: region }
+    })
+    
+    if (error) {
+      toast({variant: 'destructive', title: "Erreur", description: "Impossible de mettre à jour la région."})
+    } else {
+      await refreshUser();
+      toast({title: "Succès", description: "Région mise à jour."})
+    }
+    setUpdatingRegion(false);
+  }
   
   const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name || user?.email;
   
@@ -79,13 +101,13 @@ export default function ProfilePage() {
        <div>
         <h1 className="text-3xl font-bold font-headline">Votre Profil</h1>
         <p className="text-muted-foreground">
-          Consultez et gérez votre photo de profil.
+          Consultez et gérez vos informations et votre photo de profil.
         </p>
       </div>
       <Card>
         <CardHeader>
           <CardTitle>Informations Personnelles</CardTitle>
-          <CardDescription>Mettez à jour votre photo ici.</CardDescription>
+          <CardDescription>Mettez à jour votre photo et votre région ici.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
             <div className="flex items-center gap-4">
@@ -113,9 +135,25 @@ export default function ProfilePage() {
                   <Label>Rôle</Label>
                   <p className="text-muted-foreground">Agriculteur</p>
               </div>
-               <div className="space-y-1">
+              <div className="space-y-2">
                   <Label>Région</Label>
-                  <p className="text-muted-foreground">{user?.user_metadata.region || "Non spécifiée"}</p>
+                  <div className="flex items-center gap-2">
+                     <Select value={region} onValueChange={setRegion}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez votre région" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SENEGAL_REGIONS.map((r) => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button onClick={handleRegionUpdate} disabled={updatingRegion || region === user?.user_metadata.region}>
+                       {updatingRegion && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                       Mettre à jour
+                    </Button>
+                  </div>
+                   <p className="text-xs text-muted-foreground">Votre région est utilisée pour personnaliser les prévisions météo.</p>
               </div>
             </div>
         </CardContent>
