@@ -1,6 +1,4 @@
 
-
-
 export type User = {
     id: string;
     name: string;
@@ -74,3 +72,13 @@ export type ProductionDetails = {
     created_at: string;
     updated_at: string;
 }
+
+export type ProductionRecord = {
+    id: string;
+    user_id: string;
+    crop_name: string;
+    year: number;
+    month: number;
+    quantity_tonnes: number;
+    created_at: string;
+};

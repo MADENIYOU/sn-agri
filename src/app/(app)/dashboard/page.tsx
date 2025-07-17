@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Cloud, Sprout, Users, Loader2, Edit, BarChart } from "lucide-react";
+import { Cloud, Sprout, Users, Loader2, Edit } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -232,7 +232,7 @@ function DashboardPageContent({ initialData }: { initialData: Awaited<ReturnType
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ProductionChart />
+        <ProductionChart productionRecords={data.productionRecords} />
         <Card>
           <CardHeader>
             <CardTitle>Activité Récente de la Communauté</CardTitle>
