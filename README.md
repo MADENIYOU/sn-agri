@@ -18,7 +18,7 @@ SenAgriConnect est une plateforme web collaborative conçue pour soutenir et dyn
 
 Pour lancer le projet localement, suivez ces étapes :
 
-1.  **Cloner le dépôt**
+1.  **Cloner le dépôt github**
     ```bash
     git clone <URL_DU_REPOSITORY>
     cd <NOM_DU_DOSSIER>
