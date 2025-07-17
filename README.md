@@ -20,7 +20,7 @@ Pour lancer le projet localement, suivez ces étapes :
 
 1.  **Cloner le dépôt**
     ```bash
-    git clone <URL_DU_REPO>
+    git clone <URL_DU_REPOSITORY>
     cd <NOM_DU_DOSSIER>
     ```
 
