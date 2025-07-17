@@ -32,8 +32,7 @@ Pour lancer le projet localement, suivez ces étapes :
 3.  **Configurer les variables d'environnement**
     Créez un fichier `.env` à la racine du projet et ajoutez les clés d'API nécessaires. Un exemple est fourni dans `.env.example`.
     ```env
-    # Clés Supabase (disponibles dans votre tableau de bord Supabase)
-    
+    # Clés Supabase ( disponibles dans votre tableau de bord Supabase )
     NEXT_PUBLIC_SUPABASE_URL=VOTRE_URL_SUPABASE
     NEXT_PUBLIC_SUPABASE_ANON_KEY=VOTRE_CLE_ANON_SUPABASE
     SUPABASE_SERVICE_ROLE_KEY=VOTRE_CLE_SERVICE_ROLE_SUPABASE
