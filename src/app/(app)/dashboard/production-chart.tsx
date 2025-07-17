@@ -193,9 +193,9 @@ export function ProductionChart({ productionRecords, onUpdate }: { productionRec
       <CardContent>
         {aggregatedData.length > 0 ? (
           <ChartContainer config={dynamicChartConfig} className="h-64 w-full">
-            <RechartsBarChart accessibilityLayer data={aggregatedData} layout="vertical">
-              <CartesianGrid horizontal={false} />
-              <YAxis
+            <RechartsBarChart accessibilityLayer data={aggregatedData}>
+              <CartesianGrid vertical={false} />
+              <XAxis
                 dataKey="month"
                 type="category"
                 tickLine={false}
@@ -204,7 +204,7 @@ export function ProductionChart({ productionRecords, onUpdate }: { productionRec
                 stroke="#888888"
                 fontSize={12}
               />
-              <XAxis
+              <YAxis
                 type="number"
                 stroke="#888888"
                 fontSize={12}
