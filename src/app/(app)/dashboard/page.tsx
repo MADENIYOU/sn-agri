@@ -15,7 +15,7 @@ import { ProductionChart } from "./production-chart";
 import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardData, upsertProductionDetails } from "./actions";
-import type { Post, ProductionDetails } from "@/lib/types";
+import type { Post, ProductionDetails, ProductionRecord } from "@/lib/types";
 
 import {
   Dialog,
@@ -71,7 +71,7 @@ function ProductionDetailsDialog({ details, onUpdate }: { details: ProductionDet
         toast({ variant: 'destructive', title: 'Erreur', description: error });
       } else {
         toast({ title: 'Succès', description: 'Informations de production mises à jour.' });
-        onUpdate(data as ProductionDetails);
+        if(data) onUpdate(data as ProductionDetails);
         setIsOpen(false);
       }
     });
@@ -162,11 +162,15 @@ function ProductionDetailsDialog({ details, onUpdate }: { details: ProductionDet
 }
 
 
-function DashboardPageContent({ initialData }: { initialData: Awaited<ReturnType<typeof getDashboardData>>}) {
+function DashboardPageContent({ initialData, onDataRefresh }: { initialData: Awaited<ReturnType<typeof getDashboardData>>, onDataRefresh: () => void }) {
   const { user } = useAuth();
   const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name;
   
   const [data, setData] = useState(initialData);
+
+  useEffect(() => {
+    setData(initialData);
+  }, [initialData]);
 
   const handleProductionUpdate = (newDetails: ProductionDetails) => {
     setData(prev => ({...prev, productionDetails: newDetails}));
@@ -198,9 +202,8 @@ function DashboardPageContent({ initialData }: { initialData: Awaited<ReturnType
         </Card>
 
         <Card className="relative">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardHeader>
             <CardTitle className="text-sm font-medium">Zone de Production</CardTitle>
-            <Sprout className="text-muted-foreground" />
           </CardHeader>
           <CardContent>
             {data.productionDetails ? (
@@ -232,7 +235,7 @@ function DashboardPageContent({ initialData }: { initialData: Awaited<ReturnType
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ProductionChart productionRecords={data.productionRecords} />
+        <ProductionChart productionRecords={data.productionRecords} onUpdate={onDataRefresh} />
         <Card>
           <CardHeader>
             <CardTitle>Activité Récente de la Communauté</CardTitle>
@@ -291,17 +294,19 @@ export default function DashboardPage() {
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
+  const fetchData = async () => {
+    try {
+        setLoading(true);
         const dashboardData = await getDashboardData();
         setData(dashboardData);
-      } catch (error) {
+    } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-      } finally {
+    } finally {
         setLoading(false);
-      }
     }
+  }
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -309,5 +314,5 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  return <DashboardPageContent initialData={data} />;
+  return <DashboardPageContent initialData={data} onDataRefresh={fetchData} />;
 }

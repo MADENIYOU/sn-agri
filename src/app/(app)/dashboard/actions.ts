@@ -4,6 +4,7 @@
 import { createAdminClient, createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Post, ProductionDetails, ProductionRecord } from '@/lib/types';
 import axios from 'axios';
+import { revalidatePath } from 'next/cache';
 
 export async function getDashboardData() {
   const supabase = createSupabaseServerClient();
@@ -112,6 +113,33 @@ export async function upsertProductionDetails(details: { crop_name: string; soil
     console.error('Error upserting production details:', error);
     return { error: 'Impossible de mettre à jour les détails de production.' };
   }
-
+  revalidatePath('/dashboard');
   return { data };
+}
+
+
+export async function addProductionRecord(record: { crop_name: string; year: number; month: number, quantity_tonnes: number }) {
+    const supabase = createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { error: 'Utilisateur non authentifié.' };
+    }
+
+    const { data, error } = await supabase
+        .from('production_records')
+        .insert({
+            user_id: user.id,
+            ...record,
+        })
+        .select()
+        .single();
+    
+    if (error) {
+        console.error('Error adding production record:', error);
+        return { error: "Impossible d'ajouter l'enregistrement de production. Il se peut qu'un enregistrement pour cette culture et ce mois existe déjà." };
+    }
+
+    revalidatePath('/dashboard');
+    return { data };
 }
