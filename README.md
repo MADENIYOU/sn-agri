@@ -71,7 +71,7 @@ Envie de voir SenAgriConnect en action sur votre machine ? Suivez ce guide simpl
 1.  **Cloner le dépôt GitHub**
     Ouvrez votre terminal et exécutez :
     ```bash
-    git clone https://github.com/votre-utilisateur/SenAgriConnect.git # Remplacez par l'URL réelle de votre dépôt
+    git clone https://github.com/MADENIYOU/sn-agri.git 
     cd SenAgriConnect
     ```
 
