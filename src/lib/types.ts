@@ -18,6 +18,8 @@ export type Conversation = {
     members: string[]; // array of user UUIDs
     created_by: string;
     created_at: string; // ISO 8601 timestamp string
+    unreadCount?: number;
+    lastMessageAt?: string;
 };
 
 export type Message = {
@@ -76,9 +78,18 @@ export type ProductionDetails = {
 export type ProductionRecord = {
     id: string;
     user_id: string;
-    crop_name: string;
+    cropName: string;
     year: number;
     month: number;
-    quantity_tonnes: number;
+    quantityTonnes: number;
     created_at: string;
+};
+
+export type Forum = {
+    id: string;
+    name: string;
+    description: string;
+    created_at: string;
+    created_by: string;
+    is_followed?: boolean;
 };

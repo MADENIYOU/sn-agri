@@ -20,9 +20,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "../ui/button";
 import { LogOut } from "lucide-react";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 export function SidebarNav() {
   const pathname = usePathname();
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth(); // 1. Get loading state
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -31,14 +33,40 @@ export function SidebarNav() {
     router.refresh();
   };
 
+  // 2. Handle the loading state by showing a skeleton UI
+  if (loading) {
+    return (
+      <>
+        <SidebarHeader>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <AppLogo className="w-8 h-8 text-primary" />
+            <span className="text-xl font-bold font-headline">SenAgriConnect</span>
+          </Link>
+        </SidebarHeader>
+        <div className="flex-1"></div>
+        <SidebarSeparator />
+        <SidebarGroup>
+          <div className="flex items-center gap-3 p-2">
+            <Skeleton className="h-9 w-9 rounded-full" />
+            <div className="group-data-[collapsible=icon]:hidden w-32 space-y-1">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+            </div>
+          </div>
+        </SidebarGroup>
+      </>
+    );
+  }
+
+  // 3. Update data access to the new user object structure
   const getInitials = () => {
     if (!user) return "??";
-    const name = user.user_metadata.fullName || user.user_metadata.full_name;
+    const name = user.fullName;
     if (name) return name.split(' ').map((n:string) => n[0]).join('');
     return user.email?.substring(0, 2).toUpperCase() || '??';
   };
   
-  const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name || user?.email;
+  const displayName = user?.fullName || user?.email;
 
   return (
     <>
@@ -76,21 +104,29 @@ export function SidebarNav() {
       <SidebarSeparator />
       
       <SidebarGroup>
-        <div className="flex items-center justify-between p-2">
-          <Link href="/profile" className="flex items-center gap-2">
-            <Avatar className="h-9 w-9">
-              <AvatarImage src={user?.user_metadata.avatar_url || undefined} alt={displayName || "User"} />
-              <AvatarFallback>{getInitials()}</AvatarFallback>
-            </Avatar>
-            <div className="group-data-[collapsible=icon]:hidden">
-              <p className="font-semibold text-sm">{displayName}</p>
-              <p className="text-xs text-muted-foreground">Agriculteur</p>
-            </div>
-          </Link>
-          <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" onClick={handleLogout}>
-            <LogOut className="w-4 h-4" />
-          </Button>
-        </div>
+        {user ? (
+          <div className="flex items-center justify-between p-2">
+            <Link href="/profile" className="flex items-center gap-2">
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={user?.avatarUrl || undefined} alt={displayName || "User"} />
+                <AvatarFallback>{getInitials()}</AvatarFallback>
+              </Avatar>
+              <div className="group-data-[collapsible=icon]:hidden">
+                <p className="font-semibold text-sm">{displayName}</p>
+                <p className="text-xs text-muted-foreground">Agriculteur</p>
+              </div>
+            </Link>
+            <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="p-2">
+             <Button asChild className="w-full group-data-[collapsible=icon]:hidden">
+                <Link href="/login">Se connecter</Link>
+              </Button>
+          </div>
+        )}
       </SidebarGroup>
     </>
   );

@@ -21,7 +21,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { CROP_DATA } from "@/lib/constants";
 import { Loader2, PlusCircle } from "lucide-react";
@@ -41,10 +42,11 @@ const currentYear = new Date().getFullYear();
 const years = Array.from({ length: currentYear - 1999 }, (_, i) => currentYear - i);
 
 
-function AddProductionRecordDialog({ onUpdate }: { onUpdate: () => void }) {
+function AddProductionRecordDialog({ onUpdate }: { onUpdate: (record: ProductionRecord) => void }) {
     const [isOpen, setIsOpen] = useState(false);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
+    const router = useRouter();
 
     const form = useForm<ProductionRecordValues>({
         resolver: zodResolver(productionRecordSchema),
@@ -57,12 +59,16 @@ function AddProductionRecordDialog({ onUpdate }: { onUpdate: () => void }) {
 
     const onSubmit = (values: ProductionRecordValues) => {
         startTransition(async () => {
-            const { error } = await addProductionRecord(values);
+            const { data, error } = await addProductionRecord(values);
             if (error) {
-                toast({ variant: 'destructive', title: 'Erreur', description: error });
-            } else {
+                if (error === 'User not authenticated') {
+                    router.replace('/login');
+                } else {
+                    toast({ variant: 'destructive', title: 'Erreur', description: error });
+                }
+            } else if (data) {
                 toast({ title: 'Succès', description: 'Enregistrement de production ajouté.' });
-                onUpdate();
+                onUpdate(data);
                 setIsOpen(false);
                 form.reset();
             }
@@ -72,7 +78,7 @@ function AddProductionRecordDialog({ onUpdate }: { onUpdate: () => void }) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="absolute top-4 right-4">
+                <Button variant="outline" size="sm">
                     <PlusCircle className="mr-2 h-4 w-4" />
                     Nouveau
                 </Button>
@@ -160,36 +166,83 @@ function AddProductionRecordDialog({ onUpdate }: { onUpdate: () => void }) {
     );
 }
 
-export function ProductionChart({ productionRecords, onUpdate }: { productionRecords: ProductionRecord[], onUpdate: () => void }) {
-  // Group data by month and aggregate crops
-  const aggregatedData = productionRecords.reduce((acc, record) => {
+export function ProductionChart({ initialRecords, onRecordAdd }: { initialRecords: ProductionRecord[], onRecordAdd: (record: ProductionRecord) => void }) {
+  const [records, setRecords] = useState(initialRecords);
+  const [selectedCrop, setSelectedCrop] = useState<string | null>(null); // New state for filter
+
+  useEffect(() => {
+    setRecords(initialRecords);
+  }, [initialRecords]);
+
+  const handleRecordAdd = (newRecord: ProductionRecord) => {
+    setRecords(prev => [...prev, newRecord].sort((a, b) => a.year - b.year || a.month - b.month));
+    onRecordAdd(newRecord);
+  };
+
+  // Sanitize crop names to be used as safe keys for data and rendering.
+  const sanitizeKey = (name: string | null | undefined) => {
+    if (name === null || name === undefined) {
+      return '';
+    }
+    return name.replace(/\s+/g, '_');
+  };
+
+  // Get all unique crop names from ALL production records for filter options and full config
+  const allUniqueCropNames = [...new Set(records.map(r => r.cropName))];
+
+  const cropConfigs = allUniqueCropNames.map((name, index) => ({
+    name: name,
+    key: sanitizeKey(name),
+    color: `hsl(var(--chart-${index + 1}))`,
+  }));
+
+  // Filter records based on selectedCrop
+  const filteredRecords = selectedCrop
+    ? records.filter(record => record.cropName === selectedCrop)
+    : records;
+
+  // Group data by month and aggregate crops using the sanitized key
+  const aggregatedData = filteredRecords.reduce((acc, record) => {
     const monthKey = `${monthNames[record.month - 1]} '${String(record.year).slice(-2)}`;
     let monthEntry = acc.find(item => item.month === monthKey);
     if (!monthEntry) {
       monthEntry = { month: monthKey };
       acc.push(monthEntry);
     }
-    monthEntry[record.crop_name] = (monthEntry[record.crop_name] || 0) + record.quantity_tonnes;
+    const sanitizedCropKey = sanitizeKey(record.cropName);
+    monthEntry[sanitizedCropKey] = (monthEntry[sanitizedCropKey] || 0) + record.quantityTonnes;
     return acc;
   }, [] as any[]);
   
-  const cropNames = [...new Set(productionRecords.map(r => r.crop_name))];
+  const dynamicChartConfig = Object.fromEntries(
+    cropConfigs.map(config => [config.key, { label: config.name, color: config.color }])
+  ) as ChartConfig;
 
-  const dynamicChartConfig: ChartConfig = cropNames.reduce((acc, cropName, index) => {
-    acc[cropName] = {
-      label: cropName,
-      color: `hsl(var(--chart-${index + 1}))`,
-    };
-    return acc;
-  }, {} as ChartConfig);
+  // The actual crop keys present in the aggregated data (from filtered records)
+  const chartCropKeys = [...new Set(filteredRecords.map(r => sanitizeKey(r.cropName)))];
 
   return (
     <Card className="relative">
-      <CardHeader>
-        <CardTitle>Aperçu de la Production</CardTitle>
+      <CardHeader className="flex-col items-start"> {/* Changed to flex-col for title/desc */}
+        <div className="flex w-full items-center justify-between"> {/* New div for title and actions */}
+          <CardTitle>Aperçu de la Production</CardTitle>
+          <div className="flex items-center gap-2"> {/* Actions group */}
+            <Select value={selectedCrop || "all"} onValueChange={(value) => setSelectedCrop(value === "all" ? null : value)}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrer par culture" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Toutes les cultures</SelectItem>
+                {allUniqueCropNames.map((cropName) => (
+                  <SelectItem key={cropName} value={cropName}>{cropName}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <AddProductionRecordDialog onUpdate={handleRecordAdd} /> {/* This is the "Nouveau" button" */}
+          </div>
+        </div>
         <CardDescription>Votre rendement mensuel par culture.</CardDescription>
       </CardHeader>
-       <AddProductionRecordDialog onUpdate={onUpdate} />
       <CardContent>
         {aggregatedData.length > 0 ? (
           <ChartContainer config={dynamicChartConfig} className="h-64 w-full">
@@ -216,7 +269,7 @@ export function ProductionChart({ productionRecords, onUpdate }: { productionRec
                 cursor={false}
                 content={<ChartTooltipContent />}
               />
-              {cropNames.map(cropKey => (
+              {chartCropKeys.map(cropKey => (
                  <Bar key={cropKey} dataKey={cropKey} fill={`var(--color-${cropKey})`} radius={4} stackId="a" />
               ))}
             </RechartsBarChart>

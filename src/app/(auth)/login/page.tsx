@@ -23,6 +23,8 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+import { Header } from '@/components/layout/Header';
+
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
@@ -39,78 +41,81 @@ export default function LoginPage() {
 
   const onSubmit = async (data: LoginFormValues) => {
     setLoading(true);
-    const error = await login(data.email, data.password);
-    if (error) {
-       toast({
+    try {
+      await login(data.email, data.password);
+      router.push('/dashboard');
+      router.refresh(); // Important to refresh server components
+    } catch (error: any) {
+      toast({
         variant: 'destructive',
         title: 'Erreur de connexion',
         description: error.message || 'Une erreur est survenue. Veuillez réessayer.',
       });
+    } finally {
       setLoading(false);
-    } else {
-        router.push('/dashboard');
-        router.refresh(); // Important to refresh server components
     }
   };
 
   return (
-    <Card>
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Connectez-vous à votre compte</CardTitle>
-        <CardDescription>
-          Entrez votre email ci-dessous pour accéder à votre tableau de bord.
-        </CardDescription>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="grid gap-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="email">Email</Label>
-                  <FormControl>
-                    <Input id="email" type="email" placeholder="email@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Mot de passe</Label>
-                    <Link href="#" className="ml-auto inline-block text-sm underline">
-                      Mot de passe oublié ?
-                    </Link>
-                  </div>
-                  <FormControl>
-                    <Input id="password" type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Se connecter
-            </Button>
-          </CardContent>
-        </form>
-      </Form>
-      <CardFooter className="flex flex-col gap-2 text-sm">
-        <p>
-          Vous n'avez pas de compte ?{' '}
-          <Link href="/signup" className="underline">
-            S'inscrire
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl">Connectez-vous à votre compte</CardTitle>
+          <CardDescription>
+            Entrez votre email ci-dessous pour accéder à votre tableau de bord.
+          </CardDescription>
+        </CardHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="grid gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="email">Email</Label>
+                    <FormControl>
+                      <Input id="email" type="email" placeholder="email@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center">
+                      <Label htmlFor="password">Mot de passe</Label>
+                      <Link href="#" className="ml-auto inline-block text-sm underline">
+                        Mot de passe oublié ?
+                      </Link>
+                    </div>
+                    <FormControl>
+                      <Input id="password" type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Se connecter
+              </Button>
+            </CardContent>
+          </form>
+        </Form>
+        <CardFooter className="flex flex-col gap-2 text-sm">
+          <p>
+            Vous n'avez pas de compte ?{' '}
+            <Link href="/signup" className="underline">
+              S'inscrire
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </main>
   );
 }
 

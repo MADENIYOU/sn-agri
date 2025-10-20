@@ -4,38 +4,21 @@ import { AppLogo } from '@/components/icons';
 import { Map, BrainCircuit, Sprout, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import ActusBubbles from '@/components/news/ActusBubbles';
+import HeroHeader from '@/components/landing/HeroHeader';
+import { Header } from '@/components/layout/Header';
 
 export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-        <nav className="flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <AppLogo className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold font-headline">SenAgriConnect</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" asChild>
-              <Link href="/login">Se connecter</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/signup">S'inscrire</Link>
-            </Button>
-          </div>
-        </nav>
-      </header>
+      <Header />
       <main className="flex-grow">
-        <section className="py-20 md:py-32">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-4xl md:text-6xl font-bold font-headline text-primary mb-4">
-              Dynamiser l'Agriculture Sénégalaise
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-              Une plateforme collaborative fournissant aux agriculteurs et aux acteurs des données, des informations et des connexions pour favoriser la croissance et la durabilité.
-            </p>
-            <Button size="lg" asChild>
-              <Link href="/dashboard">Entrer sur la Plateforme</Link>
-            </Button>
+        <HeroHeader />
+
+        <section className="py-20">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold text-center font-headline mb-12">Actualités</h2>
+            <ActusBubbles />
           </div>
         </section>
 

@@ -1,19 +1,18 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import {
-  cropRecommendationSearch,
-  type CropRecommendationSearchOutput,
-} from "@/ai/flows/crop-recommendation-search";
+import { cropRecommendationSearch } from "@/ai/flows/crop-recommendation-search";
+import type { CropRecommendationSearchOutput } from "@/ai/flows/schemas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { SENEGAL_REGIONS, SOIL_TYPES } from "@/lib/constants";
+import { formatText } from "@/lib/utils";
 import { Loader2, Sprout } from "lucide-react";
 
 const formSchema = z.object({
@@ -32,7 +31,7 @@ export function SearchForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       region: "",
-      soilType: "",
+      soilType: "Tout type de sol",
       weatherConditions: "Chaud et ensoleillé avec des pluies occasionnelles",
       preferences: "",
     },
@@ -163,7 +162,7 @@ export function SearchForm() {
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-2">Raisonnement</h3>
-              <p className="text-muted-foreground whitespace-pre-line">{result.reasoning}</p>
+              <p className="text-muted-foreground">{formatText(result.reasoning)}</p>
             </div>
           </CardContent>
         </Card>

@@ -1,45 +1,37 @@
-
 'use server';
 
-import { createAdminClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/prisma';
+import { getIronSession } from 'iron-session';
+import { cookies } from 'next/headers';
+import { sessionOptions } from '@/lib/session';
+import { revalidatePath } from 'next/cache';
 
-export async function updateUserAvatar(
-  userId: string,
-  avatarUrl: string
-): Promise<{ success: boolean; error: string | null }> {
-  if (!userId || !avatarUrl) {
-    return { success: false, error: 'User ID and avatar URL are required.' };
-  }
-  
-  const supabase = createAdminClient();
-
-  // Update user_metadata in auth.users first
-  const { data: { user }, error: authError } = await supabase.auth.admin.updateUserById(
-    userId,
-    {
-      user_metadata: {
-        avatar_url: avatarUrl,
-      },
+// This is a new, simplified action to update profile data.
+// Avatar URL update is removed as we no longer have a file storage service.
+export async function updateProfile(data: { fullName?: string; region?: string; username?: string; }) {
+  try {
+    const session = await getIronSession(cookies(), sessionOptions);
+    if (!session.user?.isLoggedIn) {
+      throw new Error('User not authenticated');
     }
-  );
 
-  if (authError) {
-    console.error('Error updating user avatar in auth:', authError.message);
-    return { success: false, error: authError.message };
+    const updatedUser = await prisma.profile.update({
+      where: { id: session.user.id },
+      data: {
+        fullName: data.fullName,
+        region: data.region,
+        username: data.username,
+      },
+    });
+
+    revalidatePath('/profile');
+    revalidatePath('/dashboard'); // Also revalidate dashboard as it uses profile info
+
+    const { hashedPassword, ...userWithoutPassword } = updatedUser;
+    return { data: userWithoutPassword, error: null };
+
+  } catch (error: any) {
+    console.error("Error updating profile:", error);
+    return { data: null, error: "Impossible de mettre à jour le profil." };
   }
-
-  // Then update the 'profiles' table
-  const { error: profileError } = await supabase
-    .from('profiles')
-    .update({ avatar_url: avatarUrl })
-    .eq('id', userId);
-
-  if (profileError) {
-    console.error('Error updating user avatar in profile:', profileError.message);
-    // Note: You might want to decide if you want to revert the auth update here.
-    // For now, we'll report the error.
-    return { success: false, error: profileError.message };
-  }
-
-  return { success: true, error: null };
 }

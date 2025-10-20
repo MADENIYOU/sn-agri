@@ -8,6 +8,7 @@ export const NAV_LINKS = [
   { href: "/insights", label: "Aperçus IA", icon: BarChart2 },
   { href: "/crops", label: "Base de Données", icon: Sprout },
   { href: "/feed", label: "Fil Communautaire", icon: MessageSquare },
+  { href: "/forum", label: "Forum", icon: Users },
   { href: "/chat", label: "Messagerie", icon: MessageCircle },
 ];
 
@@ -102,4 +103,4 @@ export const SENEGAL_REGIONS = [
   "Ziguinchor",
 ];
 
-export const SOIL_TYPES = ["Sableux", "Argileux", "Limoneux", "Sablo-limoneux", "Argilo-limoneux"];
+export const SOIL_TYPES = ["Tout type de sol", "Sableux", "Argileux", "Limoneux", "Sablo-limoneux", "Argilo-limoneux"];

@@ -1,99 +1,93 @@
-
 "use client";
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import type { User, AuthError } from '@supabase/supabase-js';
+import React, { createContext, useContext } from 'react';
+import useSWR, { type KeyedMutator } from 'swr';
+import type { Profile } from '@prisma/client';
 
+// Define the shape of the auth context
 interface AuthContextType {
-  user: User | null;
+  user: Profile | null;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<AuthError | null>;
-  signup: (email: string, pass: string, fullName: string) => Promise<AuthError | null>;
+  error: any;
+  login: (email: string, pass: string) => Promise<Profile>;
+  signup: (email: string, pass: string, fullName: string) => Promise<Profile>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: KeyedMutator<Profile | null>; // Add refreshUser to the type
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  loading: true,
-  login: async () => null,
-  signup: async () => null,
-  logout: async () => {},
-  refreshUser: async () => {},
-});
+// Create the context with a default value
+const AuthContext = createContext<AuthContextType>(null!);
+
+// Define a generic fetcher function for SWR
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  if (!res.ok) {
+    const error = new Error('An error occurred while fetching the data.');
+    // Attach extra info to the error object.
+    error.info = await res.json();
+    error.status = res.status;
+    throw error;
+  }
+  return res.json();
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const supabase = createClient();
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Use SWR to fetch the user data. It handles caching, revalidation, etc.
+  const { data, error, isLoading, mutate } = useSWR<Profile | null>('/api/auth/user', fetcher);
 
-  const refreshUser = useCallback(async () => {
-    await supabase.auth.refreshSession();
-    const { data: { user } } = await supabase.auth.getUser();
-    setUser(user ?? null);
-  }, [supabase.auth]);
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
-      setLoading(false);
-    };
-
-    getUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (_event === 'INITIAL_SESSION') {
-        setLoading(false);
-      }
-      if (_event === "USER_UPDATED") {
-        setUser(session?.user ?? null);
-      }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [supabase]);
+  const user = error ? null : data;
 
   const login = async (email: string, pass: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    return error;
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass }),
+    });
+    const userData = await res.json();
+    if (!res.ok) throw new Error(userData.message || 'Login failed');
+    await mutate(userData); // Update the local user data with the response from the login
+    return userData;
   };
 
   const signup = async (email: string, pass: string, fullName: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        emailRedirectTo: 'https://agrisen-two.vercel.app/auth/callback',
-        data: {
-          full_name: fullName,
-        },
-      },
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass, fullName }),
     });
-    return error;
+    const newUser = await res.json();
+    if (!res.ok) throw new Error(newUser.message || 'Signup failed');
+    // Optionally, you could log the user in directly here by calling mutate(newUser)
+    return newUser;
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error('Logout failed');
+      }
+      await mutate(null, { revalidate: false }); // Set user data to null immediately and prevent revalidation
+    } catch (error) {
+      console.error('An error occurred during logout:', error);
+      throw error;
+    }
   };
 
   const value = {
-    user,
-    loading,
+    user: user ?? null,
+    loading: isLoading,
+    error,
     login,
     signup,
     logout,
-    refreshUser
+    refreshUser: mutate, // Implement refreshUser using SWR's mutate function
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+// Export the useAuth hook for easy consumption
 export const useAuth = () => {
   return useContext(AuthContext);
 };

@@ -24,6 +24,8 @@ const signupSchema = z.object({
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+import { Header } from '@/components/layout/Header';
+
 export default function SignupPage() {
   const { signup } = useAuth();
   const router = useRouter();
@@ -41,91 +43,92 @@ export default function SignupPage() {
 
   const onSubmit = async (data: SignupFormValues) => {
     setLoading(true);
-    const error = await signup(data.email, data.password, data.fullName);
-
-    if (error) {
-       toast({
+    try {
+      await signup(data.email, data.password, data.fullName);
+      toast({
+        title: 'Compte créé avec succès !',
+        description: 'Vous pouvez maintenant vous connecter.',
+      });
+      router.push('/login');
+    } catch (error: any) {
+      toast({
         variant: 'destructive',
         title: "Erreur lors de l'inscription",
         description: error.message || 'Une erreur est survenue. Veuillez réessayer.',
       });
+    } finally {
       setLoading(false);
-    } else {
-      toast({
-        title: 'Compte créé avec succès !',
-        description: 'Veuillez vérifier votre email pour confirmer votre compte.',
-      });
-      router.push('/login');
-      // No automatic redirect, user must confirm email
     }
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">Créer un compte</CardTitle>
-        <CardDescription>
-          Entrez vos informations pour créer un compte et rejoindre la communauté.
-        </CardDescription>
-      </CardHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
-             <FormField
-              control={form.control}
-              name="fullName"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="full-name">Nom complet</Label>
-                  <FormControl>
-                    <Input id="full-name" placeholder="Moussa Faye" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="email">Email</Label>
-                  <FormControl>
-                    <Input id="email" type="email" placeholder="m@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <Label htmlFor="password">Mot de passe</Label>
-                  <FormControl>
-                    <Input id="password" type="password" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Créer un compte
-            </Button>
-          </CardContent>
-        </form>
-      </Form>
-      <CardFooter className="text-sm">
-        <p>
-          Vous avez déjà un compte ?{' '}
-          <Link href="/login" className="underline">
-            Se connecter
-          </Link>
-        </p>
-      </CardFooter>
-    </Card>
+    <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 flex items-center justify-center">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Créer un compte</CardTitle>
+          <CardDescription>
+            Entrez vos informations pour créer un compte et rejoindre la communauté.
+          </CardDescription>
+        </CardHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <CardContent className="space-y-4">
+               <FormField
+                control={form.control}
+                name="fullName"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="full-name">Nom complet</Label>
+                    <FormControl>
+                      <Input id="full-name" placeholder="Moussa Faye" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="email">Email</Label>
+                    <FormControl>
+                      <Input id="email" type="email" placeholder="m@example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <Label htmlFor="password">Mot de passe</Label>
+                    <FormControl>
+                      <Input id="password" type="password" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Créer un compte
+              </Button>
+            </CardContent>
+          </form>
+        </Form>
+        <CardFooter className="text-sm">
+          <p>
+            Vous avez déjà un compte ?{' '}
+            <Link href="/login" className="underline">
+              Se connecter
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </main>
   );
 }
 

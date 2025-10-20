@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +17,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getDashboardData, upsertProductionDetails } from "./actions";
 import type { Post, ProductionDetails, ProductionRecord } from "@/lib/types";
+import type { Profile } from "@prisma/client";
 
 import {
   Dialog,
@@ -68,7 +70,11 @@ function ProductionDetailsDialog({ details, onUpdate }: { details: ProductionDet
     startTransition(async () => {
       const { data, error } = await upsertProductionDetails(values);
       if (error) {
-        toast({ variant: 'destructive', title: 'Erreur', description: error });
+        if (error === 'User not authenticated') {
+          router.replace('/login');
+        } else {
+          toast({ variant: 'destructive', title: 'Erreur', description: error });
+        }
       } else {
         toast({ title: 'Succès', description: 'Informations de production mises à jour.' });
         if(data) onUpdate(data as ProductionDetails);
@@ -162,9 +168,8 @@ function ProductionDetailsDialog({ details, onUpdate }: { details: ProductionDet
 }
 
 
-function DashboardPageContent({ initialData, onDataRefresh }: { initialData: Awaited<ReturnType<typeof getDashboardData>>, onDataRefresh: () => void }) {
-  const { user } = useAuth();
-  const displayName = user?.user_metadata.fullName || user?.user_metadata.full_name;
+function DashboardPageContent({ user, initialData }: { user: Profile, initialData: Awaited<ReturnType<typeof getDashboardData>> }) {
+  const displayName = user.fullName;
   
   const [data, setData] = useState(initialData);
 
@@ -174,6 +179,13 @@ function DashboardPageContent({ initialData, onDataRefresh }: { initialData: Awa
 
   const handleProductionUpdate = (newDetails: ProductionDetails) => {
     setData(prev => ({...prev, productionDetails: newDetails}));
+  };
+
+  const handleProductionRecordAdd = (newRecord: ProductionRecord) => {
+    setData(prev => ({
+      ...prev,
+      productionRecords: [...prev.productionRecords, newRecord].sort((a, b) => a.year - b.year || a.month - b.month)
+    }));
   };
   
   return (
@@ -193,7 +205,7 @@ function DashboardPageContent({ initialData, onDataRefresh }: { initialData: Awa
             {data.weatherData ? (
               <>
                 <div className="text-2xl font-bold">{data.weatherData.temperature}°C</div>
-                <p className="text-xs text-muted-foreground capitalize">{data.weatherData.description} à {user?.user_metadata.region}</p>
+                <p className="text-xs text-muted-foreground capitalize">{data.weatherData.description} à {user.region}</p>
               </>
             ) : (
                <p className="text-sm text-muted-foreground pt-2">Météo non disponible. Mettez à jour votre région dans le profil.</p>
@@ -235,7 +247,7 @@ function DashboardPageContent({ initialData, onDataRefresh }: { initialData: Awa
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <ProductionChart productionRecords={data.productionRecords} onUpdate={onDataRefresh} />
+        <ProductionChart initialRecords={data.productionRecords} onRecordAdd={handleProductionRecordAdd} />
         <Card>
           <CardHeader>
             <CardTitle>Activité Récente de la Communauté</CardTitle>
@@ -291,28 +303,38 @@ function DashboardSkeleton() {
 }
 
 export default function DashboardPage() {
+  const { user, loading: isAuthLoading } = useAuth();
   const [data, setData] = useState<Awaited<ReturnType<typeof getDashboardData>> | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const router = useRouter();
 
   const fetchData = async () => {
     try {
-        setLoading(true);
+        setIsDataLoading(true);
         const dashboardData = await getDashboardData();
         setData(dashboardData);
     } catch (error) {
-        console.error("Failed to fetch dashboard data:", error);
+        if (error instanceof Error && error.message === 'User not authenticated') {
+            router.replace('/login');
+        } else {
+            console.error("Failed to fetch dashboard data:", error);
+        }
     } finally {
-        setLoading(false);
+        setIsDataLoading(false);
     }
   }
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    // Only fetch data if the user is loaded and authenticated
+    if (!isAuthLoading && user) {
+      fetchData();
+    }
+  }, [isAuthLoading, user]);
 
-  if (loading || !data) {
+  // Show skeleton if either auth or data is loading, or if there's no user or data yet.
+  if (isAuthLoading || isDataLoading || !data || !user) {
     return <DashboardSkeleton />;
   }
 
-  return <DashboardPageContent initialData={data} onDataRefresh={fetchData} />;
+  return <DashboardPageContent user={user} initialData={data} onDataRefresh={fetchData} />;
 }

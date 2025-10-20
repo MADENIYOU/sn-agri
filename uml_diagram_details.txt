@@ -1,0 +1,164 @@
+# Détails pour les Diagrammes UML du Projet SN-Agri
+
+## 1. Diagramme de Cas d'Utilisation (Use Case Diagram)
+
+### Acteurs:
+
+*   **Utilisateur (User):** Toute personne interagissant avec l'application.
+*   **Système d'IA (AI System):** Le modèle d'intelligence artificielle externe fournissant des réponses.
+
+### Cas d'Utilisation:
+
+*   **Gestion de Compte (Account Management):**
+    *   S'inscrire
+    *   Se connecter
+    *   Se déconnecter
+    *   Gérer le profil
+
+*   **Consultation d'Informations Agricoles (Agricultural Information Retrieval):**
+    *   Obtenir un résumé d'articles (inclut le téléchargement de fichiers)
+    *   Obtenir des recommandations de cultures
+    *   Explorer les cultures
+    *   Afficher les détails d'une culture
+    *   Consulter les actualités
+
+*   **Interaction avec l'IA (AI Interaction):**
+    *   Discuter avec l'IA Agricole
+    *   Participer à un quiz IA
+
+*   **Participation au Forum (Forum Participation):**
+    *   Consulter le forum
+    *   Créer une publication
+    *   Répondre à une publication
+    *   Aimer une publication/un commentaire
+
+---
+
+## 2. Diagramme de Classes (Class Diagram)
+
+### Classes (Modèles) et leurs Attributs:
+
+1.  **`Profile`**
+    *   `id`: String (PK)
+    *   `username`: String (Unique, Optional)
+    *   `email`: String (Unique)
+    *   `fullName`: String (Optional)
+    *   `hashedPassword`: String (Optional)
+    *   `avatarUrl`: String (Optional)
+    *   `region`: String (Optional)
+    *   `createdAt`: DateTime
+    *   `updatedAt`: DateTime
+
+2.  **`Post`**
+    *   `id`: String (PK)
+    *   `content`: String
+    *   `imageUrl`: String (Optional)
+    *   `createdAt`: DateTime
+    *   `updatedAt`: DateTime
+    *   `authorId`: String (FK)
+    *   `forumId`: String (FK, Optional)
+
+3.  **`Comment`**
+    *   `id`: String (PK)
+    *   `content`: String
+    *   `createdAt`: DateTime
+    *   `authorId`: String (FK)
+    *   `postId`: String (FK)
+    *   `parentId`: String (FK, Optional)
+
+4.  **`CommentLike`**
+    *   `createdAt`: DateTime
+    *   `authorId`: String (FK, PK part)
+    *   `commentId`: String (FK, PK part)
+
+5.  **`Like`**
+    *   `createdAt`: DateTime
+    *   `authorId`: String (FK, PK part)
+    *   `postId`: String (FK, PK part)
+
+6.  **`ProductionDetails`**
+    *   `id`: String (PK)
+    *   `userId`: String (FK, Unique)
+    *   `cropName`: String (Optional)
+    *   `soilType`: String (Optional)
+    *   `surfaceArea`: Float (Optional)
+    *   `createdAt`: DateTime
+    *   `updatedAt`: DateTime
+
+7.  **`ProductionRecord`**
+    *   `id`: String (PK)
+    *   `userId`: String (FK)
+    *   `cropName`: String
+    *   `year`: Int
+    *   `month`: Int
+    *   `quantityTonnes`: Float
+    *   `createdAt`: DateTime
+    *   *(Note: `@@unique([userId, cropName, year, month])` implies a composite unique constraint)*
+
+8.  **`Conversation`**
+    *   `id`: String (PK)
+    *   `name`: String
+    *   `createdAt`: DateTime
+    *   `createdBy`: String (Optional)
+
+9.  **`ConversationMember`**
+    *   `conversationId`: String (FK, PK part)
+    *   `userId`: String (FK, PK part)
+    *   `lastReadAt`: DateTime (Optional)
+
+10. **`Message`**
+    *   `id`: String (PK)
+    *   `message`: String (Optional)
+    *   `audioUrl`: String (Optional)
+    *   `timestamp`: DateTime
+    *   `conversationId`: String (FK, Optional)
+    *   `senderId`: String (FK)
+
+11. **`Forum`**
+    *   `id`: String (PK)
+    *   `name`: String (Unique)
+    *   `description`: String
+    *   `createdAt`: DateTime
+    *   `createdBy`: String (FK)
+
+12. **`ForumMember`**
+    *   `forumId`: String (FK, PK part)
+    *   `userId`: String (FK, PK part)
+
+### Relations (Associations) et Cardinalités:
+
+*   **`Profile` -- `écrit` -- `Post`**: 1 -- 0..*
+*   **`Profile` -- `commente` -- `Comment`**: 1 -- 0..*
+*   **`Profile` -- `aime` -- `Like`**: 1 -- 0..*
+*   **`Profile` -- `envoie` -- `Message`**: 1 -- 0..* (Association: "sent_messages")
+*   **`Profile` -- `estMembreDe` -- `ConversationMember`**: 1 -- 0..*
+*   **`Profile` -- `aDetailsProduction` -- `ProductionDetails`**: 1 -- 0..1
+*   **`Profile` -- `aEnregistrementsProduction` -- `ProductionRecord`**: 1 -- 0..*
+*   **`Profile` -- `aimeCommentaire` -- `CommentLike`**: 1 -- 0..*
+*   **`Profile` -- `suitForum` -- `ForumMember`**: 1 -- 0..*
+*   **`Profile` -- `crée` -- `Forum`**: 1 -- 0..* (Association: "CreatedForums")
+*   **`Post` -- `écritPar` -- `Profile`**: 0..* -- 1
+*   **`Post` -- `appartientA` -- `Forum`**: 0..* -- 0..1
+*   **`Post` -- `aCommentaires` -- `Comment`**: 1 -- 0..*
+*   **`Post` -- `aLikes` -- `Like`**: 1 -- 0..*
+*   **`Comment` -- `écritPar` -- `Profile`**: 0..* -- 1
+*   **`Comment` -- `surPost` -- `Post`**: 0..* -- 1
+*   **`Comment` -- `répondA` -- `Comment`**: 0..* -- 0..1 (Association: "CommentReplies")
+*   **`Comment` -- `aLikes` -- `CommentLike`**: 1 -- 0..*
+*   **`CommentLike` -- `par` -- `Profile`**: 0..* -- 1
+*   **`CommentLike` -- `pour` -- `Comment`**: 0..* -- 1
+*   **`Like` -- `par` -- `Profile`**: 0..* -- 1
+*   **`Like` -- `pour` -- `Post`**: 0..* -- 1
+*   **`ProductionDetails` -- `appartientA` -- `Profile`**: 0..1 -- 1
+*   **`ProductionRecord` -- `appartientA` -- `Profile`**: 0..* -- 1
+*   **`Conversation` -- `aMembres` -- `ConversationMember`**: 1 -- 0..*
+*   **`Conversation` -- `aMessages` -- `Message`**: 0..1 -- 0..*
+*   **`ConversationMember` -- `estMembreDe` -- `Conversation`**: 0..* -- 1
+*   **`ConversationMember` -- `estMembre` -- `Profile`**: 0..* -- 1
+*   **`Message` -- `dans` -- `Conversation`**: 0..* -- 0..1
+*   **`Message` -- `envoyéPar` -- `Profile`**: 0..* -- 1
+*   **`Forum` -- `crééPar` -- `Profile`**: 0..* -- 1
+*   **`Forum` -- `aPosts` -- `Post`**: 1 -- 0..*
+*   **`Forum` -- `aMembres` -- `ForumMember`**: 1 -- 0..*
+*   **`ForumMember` -- `estMembreDe` -- `Forum`**: 0..* -- 1
+*   **`ForumMember` -- `estMembre` -- `Profile`**: 0..* -- 1

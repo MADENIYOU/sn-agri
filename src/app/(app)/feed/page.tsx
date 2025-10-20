@@ -17,8 +17,10 @@ import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { CommentItem } from "@/components/feed/CommentItem";
 
-function CreatePostForm({ onPostCreated }: { onPostCreated: () => void }) {
+function CreatePostForm({ onPostCreated }: { onPostCreated: (post: Post) => void }) {
     const { user } = useAuth();
     const { toast } = useToast();
     const [isPending, startTransition] = useTransition();
@@ -39,25 +41,25 @@ function CreatePostForm({ onPostCreated }: { onPostCreated: () => void }) {
     
     const handleFormSubmit = async (formData: FormData) => {
         startTransition(async () => {
-            const { error } = await createPost(formData);
+            const { post, error } = await createPost(formData);
             if (error) {
                 toast({ variant: 'destructive', title: 'Erreur', description: error });
-            } else {
+            } else if (post) {
                 formRef.current?.reset();
                 setImagePreview(null);
                 if (imageInputRef.current) {
                     imageInputRef.current.value = "";
                 }
-                onPostCreated(); // Callback to refresh posts
+                onPostCreated(post); // Callback with the new post
             }
         });
     }
     
     const getInitials = () => {
         if (!user) return "";
-        const name = user.user_metadata.fullName || user.user_metadata.full_name;
+        const name = user.fullName;
         if (name) return name.split(' ').map((n:string) => n[0]).join('');
-        return user.email?.substring(0, 2).toUpperCase() || "";
+        return user.email?.substring(0, 2).toUpperCase() || user.fullName?.substring(0, 2).toUpperCase() || "";
     };
 
     if (!user) return null;
@@ -68,11 +70,11 @@ function CreatePostForm({ onPostCreated }: { onPostCreated: () => void }) {
                 <CardContent className="p-4">
                     <div className="flex gap-4">
                         <Avatar>
-                          <AvatarImage src={user.user_metadata.avatar_url || ''} alt={user.user_metadata.fullName || 'User'} />
+                          <AvatarImage src={user.avatarUrl || ''} alt={user.fullName || 'User'} />
                           <AvatarFallback>{getInitials()}</AvatarFallback>
                         </Avatar>
                         <div className="w-full space-y-2">
-                          <Textarea name="content" placeholder={`À quoi pensez-vous, ${user.user_metadata.fullName || ''} ?`} required disabled={isPending} />
+                          <Textarea name="content" placeholder={`À quoi pensez-vous, ${user.fullName || ''} ?`} required disabled={isPending} />
                           {imagePreview && (
                               <div className="relative w-fit">
                                   <Image src={imagePreview} alt="Aperçu de l'image" width={100} height={100} className="rounded-md object-cover" />
@@ -100,7 +102,7 @@ function CreatePostForm({ onPostCreated }: { onPostCreated: () => void }) {
     )
 }
 
-function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => void }) {
+function PostCard({ post, onUpdate }: { post: Post, onUpdate: (post: Post) => void }) {
     const { toast } = useToast();
     const [isLiking, startLikeTransition] = useTransition();
     const [isCommenting, startCommentTransition] = useTransition();
@@ -109,18 +111,29 @@ function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => vo
     const [comments, setComments] = useState<CommentWithAuthor[]>([]);
     const [loadingComments, setLoadingComments] = useState(false);
 
-    const handleLikeClick = () => {
+    const handleLikeClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const originalPost = { ...post };
+        const updatedPost = {
+            ...post,
+            likes: post.user_has_liked ? post.likes - 1 : post.likes + 1,
+            user_has_liked: !post.user_has_liked,
+        };
+        onUpdate(updatedPost);
+
         startLikeTransition(async () => {
             const { error } = await toggleLike(post.id);
             if (error) {
                 toast({ variant: 'destructive', title: 'Erreur', description: error });
-            } else {
-                onInteraction();
+                onUpdate(originalPost); // Revert on error
             }
         });
     }
 
-    const handleShareClick = () => {
+    const handleShareClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         const postUrl = `${window.location.origin}/post/${post.id}`;
         navigator.clipboard.writeText(postUrl);
         toast({ title: "Lien copié !", description: "Le lien vers la publication a été copié dans votre presse-papiers."});
@@ -131,16 +144,13 @@ function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => vo
         if (comment.trim() === "") return;
 
         startCommentTransition(async () => {
-            const { error } = await addComment({ postId: post.id, content: comment });
+            const { comment: newComment, error } = await addComment({ postId: post.id, content: comment });
             if (error) {
                 toast({ variant: 'destructive', title: 'Erreur', description: error });
-            } else {
+            } else if (newComment) {
                 setComment("");
-                onInteraction();
-                // Refresh comments if they are visible
-                if(showComments) {
-                    fetchComments();
-                }
+                setComments(prev => [newComment, ...prev]);
+                onUpdate({ ...post, comments: post.comments + 1 });
             }
         });
     }
@@ -157,7 +167,9 @@ function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => vo
     }, [post.id, toast]);
 
 
-    const toggleCommentSection = () => {
+    const toggleCommentSection = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
         const newShowState = !showComments;
         setShowComments(newShowState);
         if(newShowState && comments.length === 0) {
@@ -166,81 +178,74 @@ function PostCard({ post, onInteraction }: { post: Post, onInteraction: () => vo
     }
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
-                <Avatar>
-                    <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
-                    <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                    <p className="font-semibold">{post.author.name}</p>
-                    <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}</p>
-                </div>
-            </CardHeader>
-            <CardContent className="px-4 pb-2">
-              <p className="whitespace-pre-line">{post.content}</p>
-              {post.image_url && (
-                <div className="mt-4 rounded-lg overflow-hidden border">
-                  <Image
-                    src={post.image_url}
-                    alt="Image de la publication"
-                    width={600}
-                    height={400}
-                    className="w-full h-auto object-cover"
-                  />
-                </div>
-              )}
-            </CardContent>
-            <CardFooter className="flex justify-between border-t p-2">
-              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeClick} disabled={isLiking}>
-                <ThumbsUp className={cn("w-4 h-4", post.user_has_liked && "fill-primary text-primary")} /> 
-                <span>{post.likes} J'aime</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={toggleCommentSection}>
-                <MessageSquare className="w-4 h-4" /> 
-                <span>{post.comments} Commentaire</span>
-              </Button>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShareClick}>
-                <Share2 className="w-4 h-4" /> 
-                <span>Partager</span>
-              </Button>
-            </CardFooter>
-            {showComments && (
-                <div className="p-4 border-t">
-                    <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
-                        <Input 
-                          value={comment} 
-                          onChange={(e) => setComment(e.target.value)} 
-                          placeholder="Ajouter un commentaire..."
-                          disabled={isCommenting}
-                        />
-                        <Button type="submit" size="icon" disabled={isCommenting || comment.trim() === ""}>
-                            {isCommenting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4" />}
-                        </Button>
-                    </form>
-                    <div className="space-y-4">
-                        {loadingComments ? (
-                            <div className="flex justify-center"><Loader2 className="w-5 h-5 animate-spin"/></div>
-                        ) : comments.length > 0 ? (
-                            comments.map(c => (
-                                <div key={c.id} className="flex items-start gap-2 text-sm">
-                                    <Avatar className="h-8 w-8">
-                                        <AvatarImage src={c.author.avatar || undefined} />
-                                        <AvatarFallback>{c.author.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1 bg-muted rounded-lg p-2">
-                                        <p className="font-semibold">{c.author.name}</p>
-                                        <p className="text-muted-foreground">{c.content}</p>
+        <Link href={`/post/${post.id}`} className="block">
+            <Card>
+                <CardHeader className="flex flex-row items-center gap-4 space-y-0 p-4">
+                    <Avatar>
+                        <AvatarImage src={post.author.avatar || undefined} alt={post.author.name} />
+                        <AvatarFallback>{post.author.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="font-semibold">{post.author.name}</p>
+                        <p className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: fr })}</p>
+                    </div>
+                </CardHeader>
+                <CardContent className="px-4 pb-2">
+                  <p className="whitespace-pre-line">{post.content}</p>
+                  {post.image_url && (
+                    <div className="mt-4 rounded-lg overflow-hidden border">
+                      <Image
+                        src={post.image_url}
+                        alt="Image de la publication"
+                        width={600}
+                        height={400}
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                  )}
+                </CardContent>
+                            <CardFooter className="flex justify-between border-t p-2">
+                              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleLikeClick} disabled={isLiking}>
+                                <ThumbsUp className={cn("w-4 h-4", post.user_has_liked && "fill-primary text-primary")} /> 
+                                <span>{post.likes} J'aime</span>
+                              </Button>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={toggleCommentSection}>
+                                <MessageSquare className="w-4 h-4" /> 
+                                <span>{post.comments} Commentaire</span>
+                              </Button>
+                              <Button variant="ghost" size="sm" className="flex items-center gap-2" onClick={handleShareClick}>
+                                <Share2 className="w-4 h-4" /> 
+                                <span>Partager</span>
+                              </Button>
+                            </CardFooter>
+                            {showComments && (
+                                <div className="p-4 border-t">
+                                    <form onSubmit={handleCommentSubmit} className="flex gap-2 mb-4">
+                                        <Input 
+                                          value={comment} 
+                                          onChange={(e) => setComment(e.target.value)} 
+                                          placeholder="Ajouter un commentaire..."
+                                          disabled={isCommenting}
+                                        />
+                                        <Button type="submit" size="icon" disabled={isCommenting || comment.trim() === ""}>
+                                            {isCommenting ? <Loader2 className="w-4 h-4 animate-spin"/> : <Send className="w-4 h-4" />}
+                                        </Button>
+                                    </form>
+                                    <div className="space-y-4">
+                                        {loadingComments ? (
+                                            <div className="flex justify-center"><Loader2 className="w-5 h-5 animate-spin"/></div>
+                                        ) : comments.length > 0 ? (
+                                            comments.map(c => (
+                                                <CommentItem key={c.id} comment={c} onInteraction={() => fetchComments()} postId={post.id} fetchComments={fetchComments} />
+                                            ))
+                                        ) : (
+                                            <p className="text-sm text-center text-muted-foreground">Aucun commentaire pour le moment.</p>
+                                        )}
                                     </div>
                                 </div>
-                            ))
-                        ) : (
-                            <p className="text-sm text-center text-muted-foreground">Aucun commentaire pour le moment.</p>
-                        )}
-                    </div>
-                </div>
-            )}
-          </Card>
+                            )}
+            </Card>        
+        </Link>
     );
 }
 
@@ -289,6 +294,14 @@ export default function FeedPage() {
         fetchPosts();
     }, [fetchPosts]);
 
+    const handlePostCreated = (newPost: Post) => {
+        setPosts(prevPosts => [newPost, ...prevPosts]);
+    };
+
+    const updatePost = (updatedPost: Post) => {
+        setPosts(prevPosts => prevPosts.map(p => p.id === updatedPost.id ? updatedPost : p));
+    };
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
@@ -298,7 +311,7 @@ export default function FeedPage() {
         </p>
       </div>
 
-      <CreatePostForm onPostCreated={fetchPosts} />
+      <CreatePostForm onPostCreated={handlePostCreated} />
       
       <div className="space-y-6">
         {loading ? (
@@ -307,7 +320,7 @@ export default function FeedPage() {
                 <PostSkeleton />
             </>
         ) : posts.length > 0 ? (
-            posts.map((post) => <PostCard key={post.id} post={post} onInteraction={fetchPosts} />)
+            posts.map((post) => <PostCard key={post.id} post={post} onUpdate={updatePost} />)
         ) : (
             <Card>
                 <CardContent className="p-6 text-center text-muted-foreground">
