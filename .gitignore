@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+/sn_agri_mobile_backend/node_modules
+/sn_agri_mobile/node_modules
+dashboardagriculture/node_modules
+AgroSen-decouverte/node_modules
 /.pnp
 .pnp.*
 .yarn/*
@@ -45,4 +49,6 @@ next-env.d.ts
 /src/prisma/migrations
 /src/prisma/dev.db
 /dashboardagriculture
+/sn_agri_mobile_backend
+/sn_agri_mobile
 /AgroSen-decouverte
